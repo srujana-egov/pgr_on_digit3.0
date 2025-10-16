@@ -79,11 +79,11 @@ public class WorkflowRepository {
           return response;
     }
 
-    public boolean updateProcessInstance(String tenantId, String workflowInstanceId, String processId, String action) {
+    public boolean updateProcessInstance( String entityId, String processId, String action) {
         try {
             WorkflowTransitionRequest request = WorkflowTransitionRequest.builder()
                     .processId(processId)
-                    .entityId(workflowInstanceId)
+                    .entityId(entityId)
                     .action(action)
                     .attributes(null) // No attributes for simple updates
                     .build();
@@ -93,12 +93,12 @@ public class WorkflowRepository {
             WorkflowTransitionResponse response = workflowClient.executeTransition(request);
             
             boolean success = response != null && response.getId() != null;
-            log.info("Process instance update for workflowInstanceId={}, processId={}, action={}: {}", 
-                    workflowInstanceId, processId, action, success ? "SUCCESS" : "FAILED");
+            log.info("Process instance update for  processId={}, action={}: {}",
+                     processId, action, success ? "SUCCESS" : "FAILED");
             return success;
         } catch (Exception e) {
-            log.error("updateProcessInstance failed for workflowInstanceId={}, processId={}, action={}: {}", 
-                      workflowInstanceId, processId, action, e.getMessage());
+            log.error("updateProcessInstance failed for processId={}, action={}: {}",
+                       processId, action, e.getMessage());
             return false;
         }
     }

@@ -14,6 +14,7 @@ import com.example.pgrown30.web.models.ResponseInfo;
 import com.example.pgrown30.web.models.ServiceResponse;
 import com.example.pgrown30.web.models.ServiceWrapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.data.jpa.domain.Specification;
 import jakarta.persistence.criteria.Predicate;
@@ -54,6 +55,9 @@ public class ServiceServiceImpl implements ServiceService {
         this.workflowRepository = workflowRepository;
         this.pgrConfig = pgrConfig;
     }
+
+    @Value("${pgr.workflow.processId}")
+    private String workflowProcessId;
 
     @Override
 public ServiceResponse createService(ServiceWrapper wrapper) {
@@ -129,26 +133,23 @@ public ServiceResponse updateService(ServiceWrapper wrapper) {
 
     String workflowAction = wrapper.getWorkflow() != null ? wrapper.getWorkflow().getAction() : null;
 
-    if (existing.getWorkflowInstanceId() != null && workflowAction != null) {
-        String workflowProcessId = existing.getProcessId();
 
-        if (!isWorkflowProcessValid(existing.getTenantId(), workflowProcessId)) {
-            throw new RuntimeException("Workflow process not found: " + workflowProcessId);
-        }
-
-        boolean success = workflowRepository.updateProcessInstance(
-                existing.getTenantId(),
-                existing.getWorkflowInstanceId(),
-                workflowProcessId,
-                workflowAction
-        );
-
-        if (!success) {
-            throw new RuntimeException("Workflow update failed for " + existing.getWorkflowInstanceId());
-        }
-
-       // existing.setAction(workflowAction);
+    if (!isWorkflowProcessValid(existing.getTenantId(), workflowProcessId)) {
+        throw new RuntimeException("Workflow process not found: " + workflowProcessId);
     }
+
+    boolean success = workflowRepository.updateProcessInstance(
+            wrapper.getService().getServiceRequestId(),
+            workflowProcessId,
+            workflowAction
+    );
+
+    if (!success) {
+        throw new RuntimeException("Workflow update failed for " + existing.getWorkflowInstanceId());
+    }
+
+   // existing.setAction(workflowAction);
+
 
     existing.setDescription(service.getDescription());
 
@@ -341,7 +342,7 @@ private void sendNotifications(CitizenServiceEntity service, String workflowActi
 
         try {
             notificationRepository.sendEmail(
-                    "service-request-received-new",
+                    "service-request-received",
                     emails,
                     emailPayload,
                     attachments
@@ -353,7 +354,7 @@ private void sendNotifications(CitizenServiceEntity service, String workflowActi
     }
 
     // --- SMS Notification ---
-    if (service.getMobile() != null && !service.getMobile().isEmpty()) {
+    /*if (service.getMobile() != null && !service.getMobile().isEmpty()) {
         List<String> mobiles = List.of(service.getMobile());
         Map<String, Object> smsPayload = Map.of(
                 "applicationNo", service.getServiceRequestId(),
@@ -373,7 +374,7 @@ private void sendNotifications(CitizenServiceEntity service, String workflowActi
         } catch (Exception e) {
             log.error("Failed to send SMS for serviceRequestId={}: {}", service.getServiceRequestId(), e.getMessage());
         }
-    }
+    }*/
 }
 
 

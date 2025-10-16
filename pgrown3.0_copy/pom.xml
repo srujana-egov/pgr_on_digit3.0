@@ -109,6 +109,16 @@
             <scope>system</scope>
             <systemPath>${project.basedir}/../digit-client-1.0.0.jar</systemPath>
         </dependency>
+        <!-- Security + JWT resource server (validates tokens, fetches JWKs, etc.) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+        <!-- Optional: if not pulled transitively -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-jose</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
