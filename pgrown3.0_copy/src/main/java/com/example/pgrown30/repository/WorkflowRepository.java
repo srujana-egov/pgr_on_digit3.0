@@ -31,6 +31,9 @@ public class WorkflowRepository {
     @Value("${workflow.host}")
     private String workflowHost;
 
+    @Value("${pgr.workflow.processId}")
+    private String processId;
+
     private String base() {
         return workflowHost + "/workflow/v1";
     }
@@ -49,14 +52,11 @@ public class WorkflowRepository {
     }
 
     // TRANSITION APIS - Using digit-client
-    public Map<String, Object> transition(String tenantId,
-                                          String clientId,
-                                          String processId,
+    public WorkflowTransitionResponse transition(
                                           String entityId,
                                           String action,
                                           String comment,
                                           Map<String, List<String>> attributes) {
-        try {
             // For now, let's pass null attributes and let the library handle it
             // We can revisit this once we understand the exact API structure
             WorkflowTransitionRequest.Attributes workflowAttributes = null;
@@ -76,18 +76,7 @@ public class WorkflowRepository {
             log.info("Workflow transition completed successfully for entityId={} processId={} action={}", 
                     entityId, processId, action);
             
-            // Convert response to Map for backward compatibility
-            Map<String, Object> responseMap = new java.util.HashMap<>();
-            if (response != null) {
-                responseMap.put("id", response.getId());
-                responseMap.put("status", response.getStatus());
-                responseMap.put("currentState", response.getCurrentState());
-            }
-            return responseMap;
-        } catch (Exception e) {
-            log.error("Transition failed for entityId={} processId={} action={}: {}", entityId, processId, action, e.getMessage(), e);
-            throw e;
-        }
+          return response;
     }
 
     public boolean updateProcessInstance(String tenantId, String workflowInstanceId, String processId, String action) {

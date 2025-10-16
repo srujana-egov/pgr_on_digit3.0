@@ -31,9 +31,9 @@ public class CitizenServiceEntity {
     @Column(name = "source")
     private String source;
 
-    @Enumerated(EnumType.STRING)
+   // @Enumerated(EnumType.STRING)
     @Column(name = "application_status")
-    private Status applicationStatus;
+    private String applicationStatus;
 
     @Column(name = "file_store_id")
     private String fileStoreId;

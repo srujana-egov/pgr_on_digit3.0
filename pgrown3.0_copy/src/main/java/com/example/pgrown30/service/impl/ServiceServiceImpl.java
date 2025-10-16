@@ -1,5 +1,6 @@
 package com.example.pgrown30.service.impl;
 
+import com.digit.services.workflow.model.WorkflowTransitionResponse;
 import com.example.pgrown30.config.PgrConfig;
 import com.example.pgrown30.domain.CitizenServiceEntity;
 import com.example.pgrown30.domain.Status;
@@ -74,12 +75,12 @@ public ServiceResponse createService(ServiceWrapper wrapper) {
     validateFileStore(service);
 
     String processId = pgrConfig.getProcessId();
-    WorkflowResult workflowResult = startWorkflow(service, newId, processId);
+    WorkflowTransitionResponse workflowTransitionResponse = startWorkflow(service, newId, processId);
 
-    service.setWorkflowInstanceId(workflowResult.getInstanceId());
-    service.setProcessId(processId);
-    service.setAction(workflowResult.getInitialAction());
-    service.setApplicationStatus(workflowResult.getStatus());
+   // service.setWorkflowInstanceId(workflowResult.getInstanceId());
+   // service.setProcessId(processId);
+        // service.setAction(workflowResult.getInitialAction());
+    service.setApplicationStatus(workflowTransitionResponse.getStatus());
 
     citizenServiceRepository.save(service);
 
@@ -91,9 +92,9 @@ public ServiceResponse createService(ServiceWrapper wrapper) {
     }
 
     CitizenService responseDto = CitizenServiceMapper.toDto(service);
-    responseDto.setApplicationStatus(workflowResult.getStatus().name());
-    responseDto.setWorkflowInstanceId(workflowResult.getInstanceId());
-    responseDto.setAction(workflowResult.getInitialAction());
+    responseDto.setApplicationStatus(workflowTransitionResponse.getStatus());
+    responseDto.setWorkflowInstanceId(workflowTransitionResponse.getId());
+    responseDto.setAction(workflowTransitionResponse.getAction());
 
     // Build Notification object for response
     Notification notification = Notification.builder()
@@ -159,7 +160,7 @@ public ServiceResponse updateService(ServiceWrapper wrapper) {
     existing.setDescription(service.getDescription());
 
     if (dto.getApplicationStatus() != null) {
-        existing.setApplicationStatus(Status.valueOf(dto.getApplicationStatus()));
+        existing.setApplicationStatus(dto.getApplicationStatus());
     }
 
     existing.setLastModifiedTime(Instant.now().toEpochMilli());
@@ -258,19 +259,20 @@ public ServiceResponse searchServices(ServiceWrapper wrapper) {
         }
     }
 
-    private WorkflowResult startWorkflow(CitizenServiceEntity service, String complaintNumber, String processId) {
+    private WorkflowTransitionResponse startWorkflow(CitizenServiceEntity service, String complaintNumber, String processId) {
         String tenantId = service.getTenantId();
         String initialAction = "APPLY";
 
         Map<String, List<String>> attributes = new HashMap<>();
         attributes.put("channel", List.of("Citizen"));
 
-        Map<String, Object> transitionResp = workflowRepository.transition(
-                tenantId, "pgr-citizen", processId, complaintNumber,
+        WorkflowTransitionResponse workflowTransitionResponse = workflowRepository.transition(
+                 complaintNumber,
                 initialAction, "Complaint submitted", attributes
         );
 
-        Map<String, Object> latest = workflowRepository.getLatestInstance(tenantId, processId, complaintNumber);
+        return workflowTransitionResponse;
+       /* Map<String, Object> latest = workflowRepository.getLatestInstance(tenantId, processId, complaintNumber);
         String wfInstanceId = extractWorkflowInstanceId(transitionResp, latest);
         String currentState = extractWorkflowState(latest);
 
@@ -279,7 +281,7 @@ public ServiceResponse searchServices(ServiceWrapper wrapper) {
         }
 
         Status status = currentState != null ? Status.valueOf(currentState) : Status.INITIATED;
-        return new WorkflowResult(wfInstanceId, initialAction, status);
+        return new WorkflowResult(wfInstanceId, initialAction, status);*/
     }
 
     private String extractWorkflowInstanceId(Map<String, Object> transitionResp, Map<String, Object> latest) {
@@ -349,7 +351,7 @@ private void sendNotifications(CitizenServiceEntity service) {
                 "applicationNo", service.getServiceRequestId(),
                 "citizenName", service.getAccountId(),
                 "serviceName", service.getDescription(),
-                "statusLabel", service.getApplicationStatus().name(),
+                "statusLabel", service.getApplicationStatus(),
                 "action", workflowAction,
                 "trackUrl", "https://pgr.digit.org/track/" + service.getServiceRequestId(),
                 "ulbName", "Hyderabad Municipal Corporation"
@@ -376,7 +378,7 @@ private void sendNotifications(CitizenServiceEntity service) {
         Map<String, Object> smsPayload = Map.of(
                 "applicationNo", service.getServiceRequestId(),
                 "serviceName", service.getDescription(),
-                "statusLabel", service.getApplicationStatus().name(),
+                "statusLabel", service.getApplicationStatus(),
                 "action", workflowAction
         );
 

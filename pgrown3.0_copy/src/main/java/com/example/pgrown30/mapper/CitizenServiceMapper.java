@@ -17,8 +17,8 @@ public class CitizenServiceMapper {
         entity.setAccountId(dto.getAccountId());
         entity.setSource(dto.getSource());
         entity.setApplicationStatus(dto.getApplicationStatus() != null 
-                ? Status.valueOf(dto.getApplicationStatus()) 
-                : Status.INITIATED);
+                ? dto.getApplicationStatus()
+                : "INITIATED");
         entity.setFileStoreId(dto.getFileStoreId());
         entity.setFileValid(dto.isFileValid());
         entity.setBoundaryCode(dto.getBoundaryCode());
@@ -42,7 +42,7 @@ public class CitizenServiceMapper {
         dto.setAccountId(entity.getAccountId());
         dto.setSource(entity.getSource());
         dto.setApplicationStatus(entity.getApplicationStatus() != null 
-                ? entity.getApplicationStatus().name() 
+                ? entity.getApplicationStatus()
                 : null);
         dto.setFileStoreId(entity.getFileStoreId());
         dto.setFileValid(entity.getFileValid());
