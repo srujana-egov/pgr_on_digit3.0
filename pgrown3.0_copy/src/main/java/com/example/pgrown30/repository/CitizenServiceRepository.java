@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface CitizenServiceRepository extends JpaRepository<CitizenServiceEntity, String>, JpaSpecificationExecutor<CitizenServiceEntity> {
@@ -18,4 +19,6 @@ public interface CitizenServiceRepository extends JpaRepository<CitizenServiceEn
     List<CitizenServiceEntity> findByTenantIdAndServiceCodeAndApplicationStatus(
     String tenantId, String serviceCode, Status applicationStatus
 );
+    Optional<CitizenServiceEntity> findByServiceRequestIdAndTenantId(String serviceRequestId, String tenantId);
+
 }

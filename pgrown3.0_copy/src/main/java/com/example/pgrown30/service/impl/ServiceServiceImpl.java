@@ -21,6 +21,7 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.*;
@@ -186,13 +187,32 @@ public ServiceResponse updateService(ServiceWrapper wrapper, List<String> roles)
 }
 
 
+    @Transactional(readOnly = true)
+    public ServiceResponse searchServicesById(String serviceRequestId, String tenantId) {
+        if (serviceRequestId == null || serviceRequestId.isBlank()) {
+            throw new RuntimeException("serviceRequestId is required");
+        }
+
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new RuntimeException("X-Tenant-ID (tenantId) is required");
+        }
+
+        Optional<CitizenServiceEntity> maybe =
+                citizenServiceRepository.findByServiceRequestIdAndTenantId(serviceRequestId, tenantId);
+
+        List<CitizenService> serviceDTOs = maybe
+                .map(CitizenServiceMapper::toDto)
+                .map(List::of)
+                .orElseGet(List::of);
+
+        return new ServiceResponse(serviceDTOs, Collections.emptyList());
+    }
+
+
 
     @Override
 public ServiceResponse searchServices(ServiceWrapper wrapper) {
     CitizenService dto = wrapper.getService();
-    if (dto == null || dto.getTenantId() == null || dto.getTenantId().isEmpty()) {
-        throw new RuntimeException("tenantId is required for searching services");
-    }
 
     Specification<CitizenServiceEntity> spec = Specification.where(
         (root, query, cb) -> cb.equal(root.get("tenantId"), dto.getTenantId())
