@@ -20,15 +20,13 @@ public class NotificationRepository {
 
     private final NotificationClient notificationClient;
 
-    @Async
+   // @Async
     public void sendEmail(String templateId, List<String> emailIds, Map<String, Object> payload, List<String> attachments) {
             SendEmailRequest request = SendEmailRequest.builder()
                     .templateId(templateId)
-                    .version("1.0.0")
                     .emailIds(emailIds)
                     .enrich(false)
                     .payload(payload)
-                    .attachments(attachments != null ? attachments : List.of())
                     .build();
 
             // Use digit-client library for email sending
@@ -36,7 +34,7 @@ public class NotificationRepository {
             SendEmailResponse response = notificationClient.sendEmail(request);
     }
 
-    @Async
+   // @Async
     public void sendSms(String templateId, List<String> mobileNumbers, Map<String, Object> payload, String category) {
             // Use default SMS category - let's check what values are available
             SendSMSRequest.SMSCategory smsCategory = null;
@@ -44,7 +42,6 @@ public class NotificationRepository {
 
             SendSMSRequest request = SendSMSRequest.builder()
                     .templateId(templateId)
-                    .version("1.0.0")
                     .mobileNumbers(mobileNumbers)
                     .enrich(false)
                     .payload(payload)

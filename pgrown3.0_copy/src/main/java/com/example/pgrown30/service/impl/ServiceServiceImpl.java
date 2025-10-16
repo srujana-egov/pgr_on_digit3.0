@@ -60,7 +60,7 @@ public class ServiceServiceImpl implements ServiceService {
     private String workflowProcessId;
 
     @Override
-public ServiceResponse createService(ServiceWrapper wrapper) {
+public ServiceResponse createService(ServiceWrapper wrapper, List<String> roles) {
     CitizenService dto = wrapper.getService();
 
     CitizenServiceEntity service = CitizenServiceMapper.toEntity(dto);
@@ -80,7 +80,7 @@ public ServiceResponse createService(ServiceWrapper wrapper) {
     //validateFileStore(service);
 
     String processId = pgrConfig.getProcessId();
-    WorkflowTransitionResponse workflowTransitionResponse = startWorkflow(service, newId, processId);
+    WorkflowTransitionResponse workflowTransitionResponse = startWorkflow(service, newId, processId, roles);
 
    // service.setWorkflowInstanceId(workflowResult.getInstanceId());
    // service.setProcessId(processId);
@@ -118,7 +118,7 @@ public ServiceResponse createService(ServiceWrapper wrapper) {
 }
 
  @Override
-public ServiceResponse updateService(ServiceWrapper wrapper) {
+public ServiceResponse updateService(ServiceWrapper wrapper, List<String> roles) {
     CitizenService dto = wrapper.getService();
     CitizenServiceEntity service = CitizenServiceMapper.toEntity(dto);
 
@@ -141,7 +141,8 @@ public ServiceResponse updateService(ServiceWrapper wrapper) {
     boolean success = workflowRepository.updateProcessInstance(
             wrapper.getService().getServiceRequestId(),
             workflowProcessId,
-            workflowAction
+            workflowAction,
+            roles
     );
 
     if (!success) {
@@ -240,12 +241,11 @@ public ServiceResponse searchServices(ServiceWrapper wrapper) {
         }
     }
 
-    private WorkflowTransitionResponse startWorkflow(CitizenServiceEntity service, String complaintNumber, String processId) {
-        String tenantId = service.getTenantId();
+    private WorkflowTransitionResponse startWorkflow(CitizenServiceEntity service, String complaintNumber, String processId, List<String> roles) {
         String initialAction = "APPLY";
 
         Map<String, List<String>> attributes = new HashMap<>();
-        attributes.put("channel", List.of("Citizen"));
+        attributes.put("roles", roles);
 
         WorkflowTransitionResponse workflowTransitionResponse = workflowRepository.transition(
                  complaintNumber,

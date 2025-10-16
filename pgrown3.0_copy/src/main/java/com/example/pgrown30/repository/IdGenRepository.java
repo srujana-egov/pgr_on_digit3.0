@@ -32,8 +32,8 @@ public class IdGenRepository {
 
             // Use digit-client library for ID generation
             // Headers are automatically propagated via HeaderPropagationInterceptor
-            GenerateIDResponse response = idGenClient.generateId(request);
+            String id =  idGenClient.generateId(request);
 
-            return response.getId();
+            return id;
     }
 }

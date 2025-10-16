@@ -28,7 +28,7 @@ class CitizenServiceRepositoryTest {
                 .description("Streetlight not working")
                 .accountId("acc-123")
                 .source("mobile-app")
-                .applicationStatus(Status.ACTIVE)
+                .applicationStatus("ACTIVE")
                 .createdTime(System.currentTimeMillis())
                 .lastModifiedTime(System.currentTimeMillis())
                 .build();
@@ -51,7 +51,7 @@ class CitizenServiceRepositoryTest {
                 .tenantId("tenant.two")
                 .serviceCode("PGR002")
                 .description("Garbage not collected")
-                .applicationStatus(Status.ACTIVE)
+                .applicationStatus("ACTIVE")
                 .build();
 
         repository.save(entity1);
@@ -72,7 +72,7 @@ class CitizenServiceRepositoryTest {
                 .tenantId("tenant.three")
                 .serviceCode("PGR003")
                 .description("Water leakage")
-                .applicationStatus(Status.ACTIVE)
+                .applicationStatus("ACTIVE")
                 .build();
 
         repository.save(entity2);

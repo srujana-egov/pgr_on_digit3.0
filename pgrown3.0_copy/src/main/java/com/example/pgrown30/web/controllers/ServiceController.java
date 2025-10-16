@@ -33,7 +33,7 @@ public class ServiceController {
         List<String> roles = getRealmRoles(jwt);
         System.out.println(roles);
         // you can pass roles to your service if you need
-        ServiceResponse response = serviceService.createService(wrapper);
+        ServiceResponse response = serviceService.createService(wrapper, roles);
         return ResponseEntity.ok(response);
     }
 
@@ -41,7 +41,8 @@ public class ServiceController {
     public ResponseEntity<ServiceResponse> update(@RequestBody ServiceWrapper wrapper,
                                                   @AuthenticationPrincipal Jwt jwt) {
         List<String> roles = getRealmRoles(jwt);
-        ServiceResponse response = serviceService.updateService(wrapper);
+        System.out.println(roles);
+        ServiceResponse response = serviceService.updateService(wrapper, roles);
         return ResponseEntity.ok(response);
     }
 
