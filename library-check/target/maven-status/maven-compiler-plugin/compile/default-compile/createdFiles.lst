@@ -1,0 +1,4 @@
+com/digit/librarycheck/LibraryCheckApplication.class
+com/digit/librarycheck/config/DigitClientConfig.class
+com/digit/librarycheck/controller/LibraryCheckController.class
+com/digit/librarycheck/model/BoundarySearchRequest.class
