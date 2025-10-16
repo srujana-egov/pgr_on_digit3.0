@@ -22,7 +22,6 @@ public class NotificationRepository {
 
     @Async
     public void sendEmail(String templateId, List<String> emailIds, Map<String, Object> payload, List<String> attachments) {
-        try {
             SendEmailRequest request = SendEmailRequest.builder()
                     .templateId(templateId)
                     .version("1.0.0")
@@ -36,16 +35,10 @@ public class NotificationRepository {
             // Headers are automatically propagated via HeaderPropagationInterceptor
             SendEmailResponse response = notificationClient.sendEmail(request);
 
-            log.info("Email notification sent [{}] to {}: {}", templateId, emailIds, 
-                    response != null ? response.getStatus() : "SUCCESS");
-        } catch (Exception e) {
-            log.error("Failed to send email [{}] to {}: {}", templateId, emailIds, e.getMessage());
-        }
     }
 
     @Async
     public void sendSms(String templateId, List<String> mobileNumbers, Map<String, Object> payload, String category) {
-        try {
             // Use default SMS category - let's check what values are available
             SendSMSRequest.SMSCategory smsCategory = null;
             // We'll set this to null and let the library handle the default
@@ -62,11 +55,5 @@ public class NotificationRepository {
             // Use digit-client library for SMS sending
             // Headers are automatically propagated via HeaderPropagationInterceptor
             SendSMSResponse response = notificationClient.sendSMS(request);
-
-            log.info("SMS notification sent [{}] to {}: {}", templateId, mobileNumbers, 
-                    response != null ? response.getStatus() : "SUCCESS");
-        } catch (Exception e) {
-            log.error("Failed to send SMS [{}] to {}: {}", templateId, mobileNumbers, e.getMessage());
-        }
     }
 }

@@ -35,7 +35,7 @@ public class BoundaryRepository {
         }
     }
 
-    public List<Boundary> searchBoundariesByCodes(List<String> codes) {
+   /* public List<Boundary> searchBoundariesByCodes(List<String> codes) {
         try {
             log.info("Searching boundaries for codes: {}", codes);
             List<Boundary> boundaries = boundaryClient.searchBoundariesByCodes(codes);
@@ -45,5 +45,5 @@ public class BoundaryRepository {
             log.error("Failed to search boundaries for codes {}: {}", codes, e.getMessage(), e);
             throw e;
         }
-    }
+    }*/
 }
