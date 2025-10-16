@@ -15,10 +15,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class ServiceRequest {
 
-    @JsonProperty("requestInfo")
-    @NotNull(message = "RequestInfo cannot be null")
-    @Valid
-    private RequestInfo requestInfo; 
+
 
     @JsonProperty("serviceWrapper")
     @NotNull(message = "ServiceWrapper cannot be null")

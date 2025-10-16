@@ -19,10 +19,6 @@ public class ServiceResponse {
     @Valid
     private List<CitizenService> services;
 
-    @JsonProperty("responseInfo")
-    @Valid
-    private ResponseInfo responseInfo;
-
     @JsonProperty("serviceWrappers")
     @Valid
     private List<ServiceWrapper> serviceWrappers;

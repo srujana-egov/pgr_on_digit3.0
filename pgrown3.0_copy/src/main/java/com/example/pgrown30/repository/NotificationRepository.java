@@ -34,7 +34,6 @@ public class NotificationRepository {
             // Use digit-client library for email sending
             // Headers are automatically propagated via HeaderPropagationInterceptor
             SendEmailResponse response = notificationClient.sendEmail(request);
-
     }
 
     @Async

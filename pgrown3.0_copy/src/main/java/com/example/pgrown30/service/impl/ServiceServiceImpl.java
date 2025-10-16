@@ -1,5 +1,7 @@
 package com.example.pgrown30.service.impl;
 
+import com.digit.services.notification.model.SendEmailRequest;
+import com.digit.services.notification.model.SendSMSRequest;
 import com.digit.services.workflow.model.WorkflowTransitionResponse;
 import com.example.pgrown30.config.PgrConfig;
 import com.example.pgrown30.domain.CitizenServiceEntity;
@@ -11,7 +13,6 @@ import com.example.pgrown30.web.models.CitizenService;
 import com.example.pgrown30.web.models.ResponseInfo;
 import com.example.pgrown30.web.models.ServiceResponse;
 import com.example.pgrown30.web.models.ServiceWrapper;
-import com.example.pgrown30.web.models.Notification;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.data.jpa.domain.Specification;
@@ -97,27 +98,22 @@ public ServiceResponse createService(ServiceWrapper wrapper) {
     responseDto.setAction(workflowTransitionResponse.getAction());
 
     // Build Notification object for response
-    Notification notification = Notification.builder()
+    SendEmailRequest notification = SendEmailRequest.builder()
     .templateId("service-request-received-new")
     .version("1.0.0")
-    .type("EMAIL")
     .emailIds(List.of(service.getEmail()))
     .payload(Map.of(
         "serviceName", service.getDescription(),
         "serviceRequestId", service.getServiceRequestId()
     ))
-    .subject("Service request created")
-    .message("Your request for " + service.getDescription() + " has been registered.")
-    .channels(List.of("EMAIL"))
     .build();
 
     ServiceWrapper responseWrapper = ServiceWrapper.builder()
             .service(responseDto)
             .workflow(wrapper.getWorkflow())
-            .notification(notification)
             .build();
 
-    return new ServiceResponse(List.of(responseDto), ResponseInfo.success(), List.of(responseWrapper));
+    return new ServiceResponse(List.of(responseDto), List.of(responseWrapper));
 }
 
  @Override
@@ -179,28 +175,15 @@ public ServiceResponse updateService(ServiceWrapper wrapper) {
 
     CitizenService responseDto = CitizenServiceMapper.toDto(existing);
 
-    Notification notification = Notification.builder()
-            .templateId("service-request-received-new")
-            .version("1.0.0")
-            .type("EMAIL")
-            .emailIds(List.of(service.getEmail()))
-            .payload(Map.of(
-                "serviceName", service.getDescription(),
-                "serviceRequestId", service.getServiceRequestId()
-            ))
-            .subject("Service request updated")
-            .message("Your request for " + service.getDescription() + " has been updated.")
-            .channels(List.of("EMAIL"))
-            .build();
+
 
     // ✅ FIX: build responseWrapper before returning
     ServiceWrapper responseWrapper = ServiceWrapper.builder()
             .service(responseDto)
             .workflow(wrapper.getWorkflow())
-            .notification(notification)
             .build();
 
-    return new ServiceResponse(List.of(responseDto), ResponseInfo.success(), List.of(responseWrapper));
+    return new ServiceResponse(List.of(responseDto), List.of(responseWrapper));
 }
 
 
@@ -232,7 +215,7 @@ public ServiceResponse searchServices(ServiceWrapper wrapper) {
             .map(CitizenServiceMapper::toDto)
             .collect(Collectors.toList());
 
-    return new ServiceResponse(serviceDTOs, ResponseInfo.success(), Collections.emptyList());
+    return new ServiceResponse(serviceDTOs,  Collections.emptyList());
 
 }
 

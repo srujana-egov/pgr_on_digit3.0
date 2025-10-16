@@ -25,9 +25,7 @@ public class ServiceWrapper {
     @Valid
     private Workflow workflow;
 
-    @JsonProperty("Notification")
-    @Valid
-    private Notification notification;  // Add this
+
     
 }
 
