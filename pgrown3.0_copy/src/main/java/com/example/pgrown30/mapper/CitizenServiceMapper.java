@@ -22,7 +22,7 @@ public class CitizenServiceMapper {
         entity.setFileStoreId(dto.getFileStoreId());
         entity.setFileValid(dto.isFileValid());
         entity.setBoundaryCode(dto.getBoundaryCode());
-        entity.setAction(dto.getAction());
+    //    entity.setAction(dto.getAction());
         entity.setWorkflowInstanceId(dto.getWorkflowInstanceId());
         entity.setCreatedTime(dto.getCreatedTime());
         entity.setLastModifiedTime(dto.getLastModifiedTime());
@@ -47,7 +47,7 @@ public class CitizenServiceMapper {
         dto.setFileStoreId(entity.getFileStoreId());
         dto.setFileValid(entity.getFileValid());
         dto.setBoundaryCode(entity.getBoundaryCode());
-        dto.setAction(entity.getAction());
+    //    dto.setAction(entity.getAction());
         dto.setWorkflowInstanceId(entity.getWorkflowInstanceId());
         dto.setCreatedTime(entity.getCreatedTime());
         dto.setLastModifiedTime(entity.getLastModifiedTime());

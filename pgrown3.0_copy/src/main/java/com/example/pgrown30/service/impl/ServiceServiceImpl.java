@@ -73,7 +73,7 @@ public ServiceResponse createService(ServiceWrapper wrapper) {
     service.setLastModifiedTime(now);
 
     validateBoundary(service);
-    validateFileStore(service);
+    //validateFileStore(service);
 
     String processId = pgrConfig.getProcessId();
     WorkflowTransitionResponse workflowTransitionResponse = startWorkflow(service, newId, processId);
@@ -86,11 +86,8 @@ public ServiceResponse createService(ServiceWrapper wrapper) {
     citizenServiceRepository.save(service);
 
     // Send notifications only if service is valid
-    if (isServiceValid(service)) {
-        sendNotifications(service);
-    } else {
-        log.warn("Notifications skipped for serviceRequestId={} due to validation failures", service.getServiceRequestId());
-    }
+    sendNotifications(service, wrapper.getWorkflow().getAction());
+
 
     CitizenService responseDto = CitizenServiceMapper.toDto(service);
     responseDto.setApplicationStatus(workflowTransitionResponse.getStatus());
@@ -150,7 +147,7 @@ public ServiceResponse updateService(ServiceWrapper wrapper) {
             throw new RuntimeException("Workflow update failed for " + existing.getWorkflowInstanceId());
         }
 
-        existing.setAction(workflowAction);
+       // existing.setAction(workflowAction);
     }
 
     existing.setDescription(service.getDescription());
@@ -161,14 +158,14 @@ public ServiceResponse updateService(ServiceWrapper wrapper) {
 
     existing.setLastModifiedTime(Instant.now().toEpochMilli());
 
-    if (existing.getFileStoreId() != null) {
-        existing.setFileValid(fileStoreRepository.isFileValid(existing.getTenantId(), existing.getFileStoreId()));
-    }
+//    if (existing.getFileStoreId() != null) {
+//        existing.setFileValid(fileStoreRepository.isFileValid(existing.getTenantId(), existing.getFileStoreId()));
+//    }
 
     citizenServiceRepository.save(existing);
 
     if (isServiceValid(existing)) {
-        sendNotifications(existing);
+        sendNotifications(existing, wrapper.getWorkflow().getAction());
     } else {
         log.warn("Notifications skipped for serviceRequestId={} due to validation failures", existing.getServiceRequestId());
     }
@@ -312,11 +309,11 @@ public ServiceResponse searchServices(ServiceWrapper wrapper) {
         public Status getStatus() { return status; }
     }
 
-private void sendNotifications(CitizenServiceEntity service) {
-    if (service.getTenantId() == null) return;
+private void sendNotifications(CitizenServiceEntity service, String workflowAction) {
+ //   if (service.getTenantId() == null) return;
 
     // Determine workflow action for dynamic templates
-    String workflowAction = service.getAction() != null ? service.getAction() : "APPLY";
+  //  String workflowAction = service.getAction() != null ? service.getAction() : "APPLY";
 
     // Map workflow actions to SMS templates
     Map<String, String> smsTemplates = Map.of(

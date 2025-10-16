@@ -44,8 +44,8 @@ public class CitizenServiceEntity {
     @Column(name = "boundary_code")
     private String boundaryCode;
 
-    @Column(name = "action")
-    private String action;
+/*    @Column(name = "action")
+    private String action;*/
 
     @Column(name = "created_time")
     private Long createdTime;

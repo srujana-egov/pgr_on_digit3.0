@@ -1,25 +1,28 @@
--- Drop old tables if you don’t need them anymore
-DROP TABLE IF EXISTS eg_pgr_audit CASCADE;
-DROP TABLE IF EXISTS eg_pgr_document CASCADE;
-DROP TABLE IF EXISTS eg_pgr_workflow CASCADE;
-DROP TABLE IF EXISTS eg_pgr_address CASCADE;
-DROP TABLE IF EXISTS eg_pgr_service CASCADE;
-
--- Create the correct citizen_service schema
 CREATE TABLE citizen_service (
-    service_request_id  VARCHAR(128) PRIMARY KEY,
-    tenant_id           VARCHAR(64) NOT NULL,
-    service_code        VARCHAR(64) NOT NULL,
-    description         VARCHAR(256),
-    account_id          VARCHAR(64),
-    application_status  VARCHAR(64),
-    source              VARCHAR(64),
-    additional_detail   JSONB,
-    created_by          VARCHAR(64),
-    last_modified_by    VARCHAR(64),
-    created_time        BIGINT,
-    last_modified_time  BIGINT
+    service_request_id     VARCHAR(128) PRIMARY KEY,
+    tenant_id              VARCHAR(64),
+    service_code           VARCHAR(64),
+    description            VARCHAR(256),
+    account_id             VARCHAR(64),
+    source                 VARCHAR(64),
+    application_status     VARCHAR(64),
+    file_store_id          VARCHAR(100),
+    file_valid             BOOLEAN DEFAULT FALSE,
+    boundary_code          VARCHAR(64),
+    created_time           BIGINT,
+    last_modified_time     BIGINT,
+    email                  VARCHAR(128),
+    mobile                 VARCHAR(32),
+    workflow_instance_id   VARCHAR(64),
+    boundary_valid         BOOLEAN DEFAULT FALSE,
+    process_id             VARCHAR(64)
 );
+
+-- Optional helpful indexes (keep or remove as needed)
+CREATE INDEX IF NOT EXISTS idx_citizen_service_tenant ON citizen_service (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_citizen_service_service_code ON citizen_service (service_code);
+CREATE INDEX IF NOT EXISTS idx_citizen_service_app_status ON citizen_service (application_status);
+CREATE INDEX IF NOT EXISTS idx_citizen_service_created_time ON citizen_service (created_time);
 
 CREATE TABLE citizen_address (
     id                  VARCHAR(64) PRIMARY KEY,
@@ -75,9 +78,7 @@ CREATE TABLE citizen_audit (
 );
 
 -- Indexes
-CREATE INDEX idx_citizen_service_tenant ON citizen_service (tenant_id);
-CREATE INDEX idx_citizen_service_account ON citizen_service (account_id);
-CREATE INDEX idx_citizen_service_status ON citizen_service (application_status);
+
 CREATE INDEX idx_citizen_workflow_service ON citizen_workflow (service_request_id);
 CREATE INDEX idx_citizen_document_service ON citizen_document (service_request_id);
 CREATE INDEX idx_citizen_audit_service ON citizen_audit (service_request_id);
