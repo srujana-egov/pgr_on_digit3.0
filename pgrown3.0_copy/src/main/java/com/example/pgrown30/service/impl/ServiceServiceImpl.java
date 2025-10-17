@@ -86,7 +86,7 @@ public ServiceResponse createService(ServiceWrapper wrapper, List<String> roles)
    // service.setWorkflowInstanceId(workflowResult.getInstanceId());
    // service.setProcessId(processId);
         // service.setAction(workflowResult.getInitialAction());
-    service.setApplicationStatus(workflowTransitionResponse.getStatus());
+    service.setApplicationStatus(workflowTransitionResponse.getCurrentState());
 
     citizenServiceRepository.save(service);
 
@@ -139,25 +139,16 @@ public ServiceResponse updateService(ServiceWrapper wrapper, List<String> roles)
         throw new RuntimeException("Workflow process not found: " + workflowProcessId);
     }
 
-    boolean success = workflowRepository.updateProcessInstance(
+     WorkflowTransitionResponse workflowResponse = workflowRepository.updateProcessInstance(
             wrapper.getService().getServiceRequestId(),
             workflowProcessId,
             workflowAction,
             roles
     );
 
-    if (!success) {
-        throw new RuntimeException("Workflow update failed for " + existing.getWorkflowInstanceId());
-    }
-
-   // existing.setAction(workflowAction);
-
-
     existing.setDescription(service.getDescription());
 
-    if (dto.getApplicationStatus() != null) {
-        existing.setApplicationStatus(dto.getApplicationStatus());
-    }
+    existing.setApplicationStatus(workflowResponse.getCurrentState());
 
     existing.setLastModifiedTime(Instant.now().toEpochMilli());
 

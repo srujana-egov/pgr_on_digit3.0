@@ -75,8 +75,7 @@ public class WorkflowRepository {
           return response;
     }
 
-    public boolean updateProcessInstance( String entityId, String processId, String action, List<String> roles) {
-        try {
+    public WorkflowTransitionResponse updateProcessInstance( String entityId, String processId, String action, List<String> roles) {
             Map<String, List<String>> attributes = new HashMap<>();
             attributes.put("roles", roles);
             WorkflowTransitionRequest request = WorkflowTransitionRequest.builder()
@@ -90,15 +89,7 @@ public class WorkflowRepository {
             // Headers are automatically propagated via HeaderPropagationInterceptor
             WorkflowTransitionResponse response = workflowClient.executeTransition(request);
             
-            boolean success = response != null && response.getId() != null;
-            log.info("Process instance update for  processId={}, action={}: {}",
-                     processId, action, success ? "SUCCESS" : "FAILED");
-            return success;
-        } catch (Exception e) {
-            log.error("updateProcessInstance failed for processId={}, action={}: {}",
-                       processId, action, e.getMessage());
-            return false;
-        }
+            return response;
     }
 
 
