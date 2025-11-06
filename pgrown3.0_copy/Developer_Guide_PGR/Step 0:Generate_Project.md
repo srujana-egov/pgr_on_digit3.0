@@ -15,7 +15,7 @@ Create a new folder in your desired location.
 
 ### 1. Prepare Swagger contracts
 
-Prepare [Swagger](https://swagger.io/docs/specification/2-0/what-is-swagger/) contracts that define all the APIs that the service will expose for external consumption.
+Prepare Swagger contracts that define all the APIs that the service will expose for external consumption.
 
 Use this contract for this PGR tutorial:  
 https://github.com/srujana-egov/pgr_on_digit3.0/blob/developer-guide/pgr3.0.yaml
