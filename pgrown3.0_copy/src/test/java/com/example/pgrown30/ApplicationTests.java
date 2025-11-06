@@ -27,19 +27,19 @@ class ApplicationTests {
 
     // --- Mock missing dependencies ---
     @MockBean
-    private com.example.pgrown30.repository.NotificationRepository notificationRepository;
+    private com.example.pgrown30.client.NotificationService notificationService;
 
     @MockBean
-    private com.example.pgrown30.repository.WorkflowRepository workflowRepository;
+    private com.example.pgrown30.client.WorkflowService workflowService;
 
     @MockBean
-    private com.example.pgrown30.repository.IdGenRepository idGenRepository;
+    private com.example.pgrown30.client.IdGenService idGenService;
 
     @MockBean
-    private com.example.pgrown30.repository.FileStoreRepository fileStoreRepository;
+    private com.example.pgrown30.util.FileStoreUtil fileStoreUtil;
 
     @MockBean
-    private com.example.pgrown30.repository.BoundaryRepository boundaryRepository;
+    private com.example.pgrown30.client.BoundaryService boundaryService;
 
     @Test
     void contextLoads() {

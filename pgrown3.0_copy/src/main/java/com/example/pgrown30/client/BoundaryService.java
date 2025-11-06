@@ -1,17 +1,17 @@
-package com.example.pgrown30.repository;
+package com.example.pgrown30.client;
 
 import com.digit.services.boundary.BoundaryClient;
 import com.digit.services.boundary.model.Boundary;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Slf4j
-@Repository
+@Component
 @RequiredArgsConstructor
-public class BoundaryRepository {
+public class BoundaryService {
 
     private final BoundaryClient boundaryClient;
 
@@ -35,7 +35,7 @@ public class BoundaryRepository {
         }
     }
 
-   /* public List<Boundary> searchBoundariesByCodes(List<String> codes) {
+    public List<Boundary> searchBoundariesByCodes(List<String> codes) {
         try {
             log.info("Searching boundaries for codes: {}", codes);
             List<Boundary> boundaries = boundaryClient.searchBoundariesByCodes(codes);
@@ -45,5 +45,5 @@ public class BoundaryRepository {
             log.error("Failed to search boundaries for codes {}: {}", codes, e.getMessage(), e);
             throw e;
         }
-    }*/
+    }
 }

@@ -1,4 +1,4 @@
-package com.example.pgrown30.repository;
+package com.example.pgrown30.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -7,20 +7,20 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 
-@Repository
+@Component
 @Slf4j
-public class ServiceRequestRepository {
+public class RestClientUtil {
 
     private final ObjectMapper mapper;
     private final RestTemplate restTemplate;
 
-    public ServiceRequestRepository(ObjectMapper mapper, RestTemplate restTemplate) {
+    public RestClientUtil(ObjectMapper mapper, RestTemplate restTemplate) {
         this.mapper = mapper;
         this.restTemplate = restTemplate;
     }

@@ -3,11 +3,13 @@ package com.example.pgrown30.domain;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 @Entity
 @Table(name = "citizen_service")
 @Getter
 @Setter
-@Builder             // ← Adds the builder() method
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class CitizenServiceEntity {
@@ -31,9 +33,9 @@ public class CitizenServiceEntity {
     @Column(name = "source")
     private String source;
 
-   // @Enumerated(EnumType.STRING)
+    @Enumerated(EnumType.STRING)
     @Column(name = "application_status")
-    private String applicationStatus;
+    private Status applicationStatus;
 
     @Column(name = "file_store_id")
     private String fileStoreId;
@@ -85,4 +87,17 @@ public String getProcessId() {
 public void setProcessId(String processId) {
     this.processId = processId;
 }
+
+    // JPA relationships
+    @OneToMany(mappedBy = "citizenService", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<CitizenAddressEntity> addresses;
+
+    @OneToMany(mappedBy = "citizenService", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<CitizenWorkflowEntity> workflows;
+
+    @OneToMany(mappedBy = "citizenService", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<CitizenDocumentEntity> documents;
+
+    @OneToMany(mappedBy = "citizenService", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<CitizenAuditEntity> audits;
 }

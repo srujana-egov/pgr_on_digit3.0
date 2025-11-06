@@ -7,7 +7,9 @@ import com.example.pgrown30.config.PgrConfig;
 import com.example.pgrown30.domain.CitizenServiceEntity;
 import com.example.pgrown30.domain.Status;
 import com.example.pgrown30.mapper.CitizenServiceMapper;
-import com.example.pgrown30.repository.*;
+import com.example.pgrown30.repository.CitizenServiceRepository;
+import com.example.pgrown30.client.*;
+import com.example.pgrown30.util.*;
 import com.example.pgrown30.service.ServiceService;
 import com.example.pgrown30.web.models.CitizenService;
 import com.example.pgrown30.web.models.ResponseInfo;
@@ -32,28 +34,28 @@ import java.util.stream.Collectors;
 public class ServiceServiceImpl implements ServiceService {
 
     private final CitizenServiceRepository citizenServiceRepository;
-    private final IdGenRepository idGenRepository;
-    private final FileStoreRepository fileStoreRepository;
-    private final BoundaryRepository boundaryRepository;
-    private final NotificationRepository notificationRepository;
-    private final WorkflowRepository workflowRepository;
+    private final IdGenService idGenService;
+    private final FileStoreUtil fileStoreUtil;
+    private final BoundaryService boundaryService;
+    private final NotificationService notificationService;
+    private final WorkflowService workflowService;
     private final PgrConfig pgrConfig;
 
     public ServiceServiceImpl(
             CitizenServiceRepository citizenServiceRepository,
-            IdGenRepository idGenRepository,
-            FileStoreRepository fileStoreRepository,
-            BoundaryRepository boundaryRepository,
-            NotificationRepository notificationRepository,
-            WorkflowRepository workflowRepository,
+            IdGenService idGenService,
+            FileStoreUtil fileStoreUtil,
+            BoundaryService boundaryService,
+            NotificationService notificationService,
+            WorkflowService workflowService,
             PgrConfig pgrConfig) {
 
         this.citizenServiceRepository = citizenServiceRepository;
-        this.idGenRepository = idGenRepository;
-        this.fileStoreRepository = fileStoreRepository;
-        this.boundaryRepository = boundaryRepository;
-        this.notificationRepository = notificationRepository;
-        this.workflowRepository = workflowRepository;
+        this.idGenService = idGenService;
+        this.fileStoreUtil = fileStoreUtil;
+        this.boundaryService = boundaryService;
+        this.notificationService = notificationService;
+        this.workflowService = workflowService;
         this.pgrConfig = pgrConfig;
     }
 
@@ -65,7 +67,7 @@ public ServiceResponse createService(ServiceWrapper wrapper, List<String> roles)
     CitizenService dto = wrapper.getService();
 
     CitizenServiceEntity service = CitizenServiceMapper.toEntity(dto);
-    String newId = idGenRepository.generateId("service_request");
+    String newId = idGenService.generateId("service_request");
     long now = Instant.now().toEpochMilli();
 
     if (dto.getSource() == null || dto.getSource().isEmpty()) {
@@ -83,10 +85,18 @@ public ServiceResponse createService(ServiceWrapper wrapper, List<String> roles)
     String processId = pgrConfig.getProcessId();
     WorkflowTransitionResponse workflowTransitionResponse = startWorkflow(service, newId, processId, roles);
 
-   // service.setWorkflowInstanceId(workflowResult.getInstanceId());
-   // service.setProcessId(processId);
-        // service.setAction(workflowResult.getInitialAction());
-    service.setApplicationStatus(workflowTransitionResponse.getCurrentState());
+    // Set workflow instance ID and process ID
+    service.setWorkflowInstanceId(workflowTransitionResponse.getId());
+    service.setProcessId(processId);
+    
+    // Convert workflow state to Status enum
+    try {
+        Status status = Status.valueOf(workflowTransitionResponse.getCurrentState());
+        service.setApplicationStatus(status);
+    } catch (IllegalArgumentException e) {
+        log.warn("Unknown status: {}", workflowTransitionResponse.getCurrentState());
+        service.setApplicationStatus(Status.INITIATED);
+    }
 
     citizenServiceRepository.save(service);
 
@@ -128,7 +138,7 @@ public ServiceResponse updateService(ServiceWrapper wrapper, List<String> roles)
             .orElseThrow(() -> new RuntimeException("Service not found: " + service.getServiceRequestId()));
 
     if (dto.getBoundaryCode() != null) {
-        boolean isValid = boundaryRepository.isBoundaryValid(dto.getBoundaryCode());
+        boolean isValid = boundaryService.isBoundaryValid(dto.getBoundaryCode());
         service.setBoundaryValid(isValid);
     }
 
@@ -139,7 +149,7 @@ public ServiceResponse updateService(ServiceWrapper wrapper, List<String> roles)
         throw new RuntimeException("Workflow process not found: " + workflowProcessId);
     }
 
-     WorkflowTransitionResponse workflowResponse = workflowRepository.updateProcessInstance(
+     WorkflowTransitionResponse workflowResponse = workflowService.updateProcessInstance(
             wrapper.getService().getServiceRequestId(),
             workflowProcessId,
             workflowAction,
@@ -148,7 +158,14 @@ public ServiceResponse updateService(ServiceWrapper wrapper, List<String> roles)
 
     existing.setDescription(service.getDescription());
 
-    existing.setApplicationStatus(workflowResponse.getCurrentState());
+    // Convert workflow state to Status enum
+    try {
+        Status status = Status.valueOf(workflowResponse.getCurrentState());
+        existing.setApplicationStatus(status);
+    } catch (IllegalArgumentException e) {
+        log.warn("Unknown status: {}", workflowResponse.getCurrentState());
+        existing.setApplicationStatus(Status.INITIATED);
+    }
 
     existing.setLastModifiedTime(Instant.now().toEpochMilli());
 
@@ -234,7 +251,7 @@ public ServiceResponse searchServices(ServiceWrapper wrapper) {
 
     private void validateBoundary(CitizenServiceEntity service) {
     if (service.getBoundaryCode() != null) {
-        boolean isValid = boundaryRepository.isBoundaryValid(
+        boolean isValid = boundaryService.isBoundaryValid(
                 service.getBoundaryCode()
         );
         service.setBoundaryValid(isValid);
@@ -248,7 +265,7 @@ public ServiceResponse searchServices(ServiceWrapper wrapper) {
 
     private void validateFileStore(CitizenServiceEntity service) {
         if (service.getFileStoreId() != null) {
-            service.setFileValid(fileStoreRepository.isFileValid(service.getTenantId(), service.getFileStoreId()));
+            service.setFileValid(fileStoreUtil.isFileValid(service.getTenantId(), service.getFileStoreId()));
         }
     }
 
@@ -258,7 +275,7 @@ public ServiceResponse searchServices(ServiceWrapper wrapper) {
         Map<String, List<String>> attributes = new HashMap<>();
         attributes.put("roles", roles);
 
-        WorkflowTransitionResponse workflowTransitionResponse = workflowRepository.transition(
+        WorkflowTransitionResponse workflowTransitionResponse = workflowService.transition(
                  complaintNumber,
                 initialAction, "Complaint submitted", attributes
         );
@@ -302,7 +319,7 @@ public ServiceResponse searchServices(ServiceWrapper wrapper) {
     }
 
     private boolean isWorkflowProcessValid(String tenantId, String processId) {
-        return workflowRepository.processExists(tenantId, processId);
+        return workflowService.processExists(tenantId, processId);
     }
 
     private static class WorkflowResult {
@@ -352,7 +369,7 @@ private void sendNotifications(CitizenServiceEntity service, String workflowActi
         List<String> attachments = service.getFileStoreId() != null ? List.of(service.getFileStoreId()) : Collections.emptyList();
 
         try {
-            notificationRepository.sendEmail(
+            notificationService.sendEmail(
                     "service-request-received",
                     emails,
                     emailPayload,
