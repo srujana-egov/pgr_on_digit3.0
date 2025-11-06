@@ -2,46 +2,35 @@
 
 ## Overview
 
-This page provides detailed steps for generating projects using the given API specifications via **Swagger**.
+This page provides detailed steps for generating projects using the given API specifications via Swagger.
 
 Refer to the following tutorial to understand the creation of Swagger contracts:
 [OpenAPI 3.0 Tutorial | Swagger Tutorial For Beginners | Design REST API Using Swagger Editor](https://youtu.be/mViFmjcDOoA)
 
----
-
 ## Steps
 
-### 0.Create a folder
+### 0. Create a folder
 
 Create a new folder in your desired location.
 
----
-
-### 1.Prepare Swagger Contracts
+### 1. Prepare Swagger contracts
 
 Prepare [Swagger](https://swagger.io/docs/specification/2-0/what-is-swagger/) contracts that define all the APIs that the service will expose for external consumption.
 
-https://github.com/srujana-egov/pgr_on_digit3.0/blob/developer-guide/pgr3.0.yaml
+> Note: eGov uses a customized [Swagger Codegen](https://github.com/egovernments/Digit-Core/blob/codegen-openapi-3.0-Core-2.9-lts/accelerators/codegen/codegen-2.0-SNAPSHOT-jar-with-dependencies.jar) tool. Add this contract file to your created folder.
 
----
+### 2. Download the codegen tool
 
-### 2. Download Codegen Tool
+Download the codegen tool and move it to your created folder:
+[https://github.com/egovernments/Digit-Core/blob/codegen-openapi-3.0-Core-2.9-lts/accelerators/codegen/codegen-2.0-SNAPSHOT-jar-with-dependencies.jar](https://github.com/egovernments/Digit-Core/blob/codegen-openapi-3.0-Core-2.9-lts/accelerators/codegen/codegen-2.0-SNAPSHOT-jar-with-dependencies.jar)
 
-Download the codegen tool and move it to your created folder.
+### 3. Navigate to the folder
 
-📥 [Download codegen jar](https://github.com/egovernments/Digit-Core/blob/codegen-openapi-3.0-Core-2.9-lts/accelerators/codegen/codegen-2.0-SNAPSHOT-jar-with-dependencies.jar)
+In your terminal, go to the folder where you’ve placed both the codegen JAR and your Swagger contract.
 
----
+### 4. Generate the API skeleton
 
-### 3. Navigate to the Folder
-
-In your terminal, go to the folder where you’ve placed both the **codegen jar** and your **Swagger contract**.
-
----
-
-### 4. Generate the API Skeleton
-
-Run the following generic command to create an API skeleton for any Swagger contract:
+Use the generic command below to create an API skeleton for any Swagger contract:
 
 ```bash
 java -jar codegen-2.0-SNAPSHOT-jar-with-dependencies.jar \
@@ -51,14 +40,11 @@ java -jar codegen-2.0-SNAPSHOT-jar-with-dependencies.jar \
   -b digit.{project_name}
 ```
 
-* `-a` → sets the **artifact name**
-* `-b` → specifies which **base templates** to use under `src/main/resources/templates/`
+* `-a` sets the artifact name.
+* `-b` tells the generator which base templates to use under `src/main/resources/templates/`.
+  That means: “Generate this service using the DIGIT framework conventions.”
 
-That means:
-
-> “Generate this service using the DIGIT framework conventions.”
-
-#### For the current tutorial that would be: 
+**Example:**
 
 ```bash
 java -jar codegen-2.0-SNAPSHOT-jar-with-dependencies.jar \
@@ -68,23 +54,17 @@ java -jar codegen-2.0-SNAPSHOT-jar-with-dependencies.jar \
   -b digit.pgr3_0
 ```
 
----
+### 5. Rename the output folder
 
-### 5. Rename the Output Folder
+Rename the generated `output` folder to `PGR3.0`.
 
-Rename the generated `output` folder to **PGR3.0**.
+### 6. Import into your IDE
 
----
-
-### 6. Import into IDE
-
-Open the renamed project (e.g., **PGR3.0**) in your preferred IDE.
-
----
+Open the renamed project (`PGR3.0`) in your preferred IDE.
 
 ### 7. Update `pom.xml`
 
-#### 7.1. Update Parent POM
+#### 7.1 Update Parent POM
 
 Replace:
 
@@ -107,9 +87,7 @@ With:
 </parent>
 ```
 
----
-
-#### 7.2. Update Properties
+#### 7.2 Update Properties
 
 Replace:
 
@@ -130,9 +108,7 @@ With:
 </properties>
 ```
 
----
-
-#### 7.3. Add Testcontainers BOM
+#### 7.3 Add Testcontainers BOM
 
 Add this section after the `<properties>` block:
 
@@ -150,9 +126,7 @@ Add this section after the `<properties>` block:
 </dependencyManagement>
 ```
 
----
-
-#### 7.4. Update Dependencies
+#### 7.4 Update Dependencies
 
 Replace the entire `<dependencies>` section with:
 
@@ -236,9 +210,7 @@ Replace the entire `<dependencies>` section with:
 </dependencies>
 ```
 
----
-
-#### 7.5. Update Build Section
+#### 7.5 Update Build Section
 
 Replace the entire `<build>` section with:
 
@@ -294,13 +266,7 @@ Replace the entire `<build>` section with:
 </build>
 ```
 
----
-
-#### 7.6. Remove eGov Repositories
+#### 7.6 Remove eGov repositories
 
 Delete any existing `<repositories>` section in your `pom.xml`.
 
----
-
-**You’re all set!**
-Your project is now generated, configured, and ready for further development under the DIGIT conventions.
