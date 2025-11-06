@@ -47,11 +47,9 @@ V[YEAR][MONTH][DAY][HR][MIN][SEC]__modulecode_ …_ddl.sql
 
 ```
 
-Example: **V20180920110535\_\_tl\_tradelicense\_ddl.sql**
+Example: **V20251106123100\_\_pgr\_publicgrievanceredressal\_ddl.sql**
 
-For this sample service, use the following SQL script to create the required tables.
-
-{% code lineNumbers="true" %}
+For this PGR service, use the following SQL script to create the required tables.
 
 ```plsql
 -- Create enum types
