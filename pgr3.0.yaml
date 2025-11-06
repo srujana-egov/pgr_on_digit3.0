@@ -1,0 +1,304 @@
+openapi: 3.0.0
+info:
+  title: PGR Services API
+  version: 1.0.8
+servers:
+  - url: https://example.com/citizen-service/v3
+paths:
+  /request:
+    post:
+      summary: Create a new PGR service request
+      tags:
+        - PGR
+      parameters:
+        - in: header
+          name: X-Client-ID
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-Tenant-ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateServiceRequest'
+      responses:
+        '200':
+          description: Service request created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceResponse'
+
+    put:
+      summary: Update an existing PGR service request
+      tags:
+        - PGR
+      parameters:
+        - in: header
+          name: X-Client-ID
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-Tenant-ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateServiceRequest'
+      responses:
+        '200':
+          description: Service request updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceResponse'
+
+    get:
+      summary: Search PGR service requests
+      tags:
+        - PGR
+      parameters:
+        - in: header
+          name: X-Client-ID
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-Tenant-ID
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: id
+          description: UUID of the service request
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: serviceCode
+          schema:
+            type: string
+        - in: query
+          name: applicationStatus
+          schema:
+            type: string
+        - in: query
+          name: mobileNumber
+          schema:
+            type: string
+        - in: query
+          name: locality
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+
+components:
+  schemas:
+    CreateServiceRequest:
+      type: object
+      properties:
+        service:
+          $ref: '#/components/schemas/ServiceCreate'
+        workflow:
+          $ref: '#/components/schemas/Workflow'
+
+    UpdateServiceRequest:
+      type: object
+      properties:
+        service:
+          $ref: '#/components/schemas/ServiceUpdate'
+        workflow:
+          $ref: '#/components/schemas/Workflow'
+
+    ServiceResponse:
+      type: object
+      properties:
+        service:
+          $ref: '#/components/schemas/Service'
+        workflow:
+          $ref: '#/components/schemas/Workflow'
+        status:
+          type: string
+          description: Status message
+
+    SearchResponse:
+      type: object
+      properties:
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/Service'
+        totalCount:
+          type: integer
+
+    ServiceCreate:
+      type: object
+      required:
+        - serviceCode
+        - description
+        - accountId
+        - address
+      properties:
+        serviceCode:
+          type: string
+        description:
+          type: string
+        accountId:
+          type: string
+        citizen:
+          $ref: '#/components/schemas/Citizen'
+        additionalDetail:
+          type: object
+        source:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address'
+
+    ServiceUpdate:
+      type: object
+      required:
+        - id
+        - serviceCode
+        - description
+        - accountId
+        - address
+      properties:
+        id:
+          type: string
+          format: uuid
+        serviceCode:
+          type: string
+        description:
+          type: string
+        accountId:
+          type: string
+        citizen:
+          $ref: '#/components/schemas/Citizen'
+        additionalDetail:
+          type: object
+        source:
+          type: string
+        applicationStatus:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address'
+
+    Service:
+      allOf:
+        - $ref: '#/components/schemas/ServiceUpdate'
+        - type: object
+          properties:
+            createdTime:
+              type: string
+              format: date-time
+            lastModifiedTime:
+              type: string
+              format: date-time
+
+    Citizen:
+      type: object
+      required:
+        - mobileNumber
+      properties:
+        name:
+          type: string
+        mobileNumber:
+          type: string
+        email:
+          type: string
+        gender:
+          type: string
+        accountId:
+          type: string
+
+    Workflow:
+      type: object
+      properties:
+        action:
+          type: string
+        assignes:
+          type: array
+          items:
+            type: string
+        comments:
+          type: string
+        verificationDocuments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Document'
+
+    Address:
+      type: object
+      required:
+        - city
+        - pincode
+        - locality
+      properties:
+        doorNo:
+          type: string
+        plotNo:
+          type: string
+        landmark:
+          type: string
+        city:
+          type: string
+        district:
+          type: string
+        region:
+          type: string
+        state:
+          type: string
+        country:
+          type: string
+        pincode:
+          type: string
+        buildingName:
+          type: string
+        street:
+          type: string
+        locality:
+          type: object
+          properties:
+            code:
+              type: string
+        geoLocation:
+          type: object
+          properties:
+            latitude:
+              type: number
+            longitude:
+              type: number
+            additionalDetails:
+              type: object
+
+    Document:
+      type: object
+      required:
+        - documentType
+        - fileStoreId
+      properties:
+        documentType:
+          type: string
+        fileStoreId:
+          type: string
+        documentUid:
+          type: string
+        additionalDetails:
+          type: object
