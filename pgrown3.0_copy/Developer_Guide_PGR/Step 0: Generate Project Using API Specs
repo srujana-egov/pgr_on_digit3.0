@@ -1,10 +1,37 @@
+Likely culprits when GitHub “won’t format” a README:
+
+1. An unclosed code fence earlier in the file
+   If any `opens but never closes, everything after renders as one big code block. Count your fences: every opening`bash / `xml must have a matching ` on its own line.
+
+2. Hidden indentation before headings/lists
+   If lines start with spaces or tabs, GitHub treats them as code. Make sure `#`, `##`, `###`, `*`, `1.` begin at column 0 (no leading spaces).
+
+3. Missing blank lines around blocks
+   Put a blank line before/after headings, lists, and code fences.
+
+4. Wrong file/encoding/view
+
+* File must be named `README.md` (or `*.md`).
+* Ensure UTF-8 (no BOM).
+* Don’t view in “Raw”. Use the normal file view on GitHub.
+
+5. Mixed smart quotes or odd characters inside fences
+   Smart quotes don’t break Markdown, but copy/paste from editors can insert stray backticks or non-breaking spaces. If in doubt, retype the fences.
+
+---
+
+### Quick fix: paste this minimal, sanitized version
+
+Try replacing your file with the version below (balanced fences, blank lines, no leading spaces). If this renders, the issue was a stray indent or unclosed fence in your previous file.
+
+````markdown
 # Generate Project Using API Specs
 
 ## Overview
 
 This page provides detailed steps for generating projects using the given API specifications via Swagger.
 
-Refer to the following tutorial to understand the creation of Swagger contracts:
+Refer to the following tutorial to understand the creation of Swagger contracts:  
 [OpenAPI 3.0 Tutorial | Swagger Tutorial For Beginners | Design REST API Using Swagger Editor](https://youtu.be/mViFmjcDOoA)
 
 ## Steps
@@ -17,12 +44,13 @@ Create a new folder in your desired location.
 
 Prepare [Swagger](https://swagger.io/docs/specification/2-0/what-is-swagger/) contracts that define all the APIs that the service will expose for external consumption.
 
-Use this contract for this PGR tutorial: https://github.com/srujana-egov/pgr_on_digit3.0/blob/developer-guide/pgr3.0.yaml
+Use this contract for this PGR tutorial:  
+https://github.com/srujana-egov/pgr_on_digit3.0/blob/developer-guide/pgr3.0.yaml
 
 ### 2. Download the codegen tool
 
-Download the codegen tool and move it to your created folder:
-[https://github.com/egovernments/Digit-Core/blob/codegen-openapi-3.0-Core-2.9-lts/accelerators/codegen/codegen-2.0-SNAPSHOT-jar-with-dependencies.jar](https://github.com/egovernments/Digit-Core/blob/codegen-openapi-3.0-Core-2.9-lts/accelerators/codegen/codegen-2.0-SNAPSHOT-jar-with-dependencies.jar)
+Download the codegen tool and move it to your created folder:  
+https://github.com/egovernments/Digit-Core/blob/codegen-openapi-3.0-Core-2.9-lts/accelerators/codegen/codegen-2.0-SNAPSHOT-jar-with-dependencies.jar
 
 ### 3. Navigate to the folder
 
@@ -38,11 +66,11 @@ java -jar codegen-2.0-SNAPSHOT-jar-with-dependencies.jar \
   -u /path/to/your/swagger-contract.yaml \
   -a {project_name} \
   -b digit.{project_name}
-```
+````
 
 * `-a` sets the artifact name.
 * `-b` tells the generator which base templates to use under `src/main/resources/templates/`.
-  That means: “Generate this service using the DIGIT framework conventions.”
+  That means: "Generate this service using the DIGIT framework conventions."
 
 **Example:**
 
@@ -269,4 +297,3 @@ Replace the entire `<build>` section with:
 #### 7.6 Remove eGov repositories
 
 Delete any existing `<repositories>` section in your `pom.xml`.
-
