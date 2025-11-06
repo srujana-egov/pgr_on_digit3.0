@@ -21,8 +21,7 @@ Create a new folder in your desired location.
 
 Prepare [Swagger](https://swagger.io/docs/specification/2-0/what-is-swagger/) contracts that define all the APIs that the service will expose for external consumption.
 
-> **Note:** eGov uses a customized [Swagger Codegen](https://github.com/egovernments/Digit-Core/blob/codegen-openapi-3.0-Core-2.9-lts/accelerators/codegen/codegen-2.0-SNAPSHOT-jar-with-dependencies.jar) tool.
-> Add this contract file to your created folder.
+https://github.com/srujana-egov/pgr_on_digit3.0/blob/developer-guide/pgr3.0.yaml
 
 ---
 
