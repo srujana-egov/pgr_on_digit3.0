@@ -1,0 +1,231 @@
+Generate Project Using API Specs
+
+Overview
+This page provides detailed steps for generating projects using the given API specifications using Swagger.
+
+Refer to the following tutorials to understand the creation of Swagger contracts -
+[OpenAPI 3.0 Tutorial| Swagger Tutorial For Beginners | Design REST API Using Swagger Editor](https://youtu.be/mViFmjcDOoA)
+
+Steps:
+0. Create a folder in your desired location. 
+1. Prepare [Swagger ](https://swagger.io/docs/specification/2-0/what-is-swagger/)contracts that detail all the APIs that the service is going to expose for external consumption. eGov uses a customised [Swagger Codegen ](https://github.com/egovernments/Digit-Core/blob/codegen-openapi-3.0-Core-2.9-lts/accelerators/codegen/codegen-2.0-SNAPSHOT-jar-with-dependencies.jar)tool. Add this contract to your created folder.
+For this tuturial use this: 
+2. Download the codegen tool and move it to your created folder. Link to download here: https://github.com/egovernments/Digit-Core/blob/codegen-openapi-3.0-Core-2.9-lts/accelerators/codegen/codegen-2.0-SNAPSHOT-jar-with-dependencies.jar
+3. Navigate to the created folder where you have downloaded the codegen jar and have moved your contract. 
+4. Use the generic command below to create an API skeleton for any Swagger contract:
+
+```
+java -jar codegen-2.0-SNAPSHOT-jar-with-dependencies.jar \
+  -l -t \
+  -u /Users/srujana/Desktop/pgr3.0.yaml \
+  -a {project_name} \
+  -b digit.{project_name}
+
+```
+-a sets the artifact name
+-b tells the generator which base templates to use under src/main/resources/templates/. That means “Generate this service using the DIGIT framework conventions.”
+
+For this example:
+
+```
+java -jar codegen-2.0-SNAPSHOT-jar-with-dependencies.jar \
+  -l -t \
+  -u /Users/srujana/Desktop/pgr3.0.yaml \
+  -a pgr3_0 \
+  -b digit.pgr3_0
+
+```
+5. Rename the `output` folder to PGR3.0.
+6. Import it in the IDE of your choice.
+8. Make the following changes to pom.xml:
+
+1. Update Parent POM
+Change the parent section:
+
+xml
+<parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.2.2</version>
+</parent>
+to:
+
+xml
+<parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.5.6</version>
+    <relativePath/>
+</parent>
+
+3. Update Properties
+Replace the properties section:
+
+xml
+<properties>
+    <java.version>17</java.version>
+    <maven.compiler.source>${java.version}</maven.compiler.source>
+    <maven.compiler.target>${java.version}</maven.compiler.target>
+</properties>
+with:
+
+xml
+<properties>
+    <java.version>17</java.version>
+    <lombok.version>1.18.32</lombok.version>
+</properties>
+
+4. Add Testcontainers BOM
+Add this dependency management section right after the properties:
+
+xml
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-bom</artifactId>
+            <version>1.20.1</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+
+5. Update Dependencies
+Replace the entire <dependencies> section with:
+
+xml
+<dependencies>
+    <!-- Spring Boot Starters -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+
+    <!-- Lombok -->
+    <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <version>${lombok.version}</version>
+        <scope>provided</scope>
+    </dependency>
+
+    <!-- Database -->
+    <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <version>42.7.3</version>
+    </dependency>
+
+    <!-- Flyway (PostgreSQL) -->
+    <dependency>
+        <groupId>org.flywaydb</groupId>
+        <artifactId>flyway-database-postgresql</artifactId>
+        <version>11.7.2</version>
+    </dependency>
+
+    <!-- Testing -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+        <scope>test</scope>
+    </dependency>
+
+    <!-- Testcontainers -->
+    <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>kafka</artifactId>
+        <scope>test</scope>
+    </dependency>
+
+    <!-- In-memory DB for tests -->
+    <dependency>
+        <groupId>com.h2database</groupId>
+        <artifactId>h2</artifactId>
+        <scope>test</scope>
+    </dependency>
+
+    <!-- Security + JWT resource server -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.security</groupId>
+        <artifactId>spring-security-oauth2-jose</artifactId>
+    </dependency>
+</dependencies>
+
+6. Update Build Section
+Replace the entire <build> section with:
+
+xml
+<build>
+    <sourceDirectory>src/main/java</sourceDirectory>
+    <plugins>
+        <!-- Flyway Maven Plugin -->
+        <plugin>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-maven-plugin</artifactId>
+            <version>11.7.2</version>
+            <configuration>
+                <url>jdbc:postgresql://localhost:5432/pgrown</url>
+                <user>postgres</user>
+                <password>password</password>
+                <schemas>
+                    <schema>public</schema>
+                </schemas>
+            </configuration>
+            <dependencies>
+                <dependency>
+                    <groupId>org.postgresql</groupId>
+                    <artifactId>postgresql</artifactId>
+                    <version>42.7.3</version>
+                </dependency>
+            </dependencies>
+        </plugin>
+
+        <!-- Compiler Plugin -->
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <configuration>
+                <source>${java.version}</source>
+                <target>${java.version}</target>
+                <annotationProcessorPaths>
+                    <path>
+                        <groupId>org.projectlombok</groupId>
+                        <artifactId>lombok</artifactId>
+                        <version>${lombok.version}</version>
+                    </path>
+                </annotationProcessorPaths>
+            </configuration>
+        </plugin>
+
+        <!-- Spring Boot Plugin -->
+        <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+        </plugin>
+    </plugins>
+</build>
+
+7. Remove eGov Repositories
+Remove entire existing <repositories> section.
