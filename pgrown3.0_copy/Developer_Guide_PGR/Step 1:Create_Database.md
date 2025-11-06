@@ -164,6 +164,32 @@ COMMENT ON COLUMN pgr_service_requests.additional_details IS 'Stores any additio
 COMMENT ON TABLE pgr_workflow_history IS 'Tracks workflow state changes for service requests';
 COMMENT ON TABLE pgr_documents IS 'Stores document references for service requests';
 ```
+3. Create the Database
+Run this command in your PostgreSQL client (like psql or pgAdmin):
 
-{% endcode %}
+Note: If using psql: psql -U postgres
+
+```sql
+CREATE DATABASE eg_pgr;
+```
+4. Run the application and verify the database to check if the tables were generated correctly.
+
+To run:
+mvn clean install
+mvn spring-boot:run
+
+To verify:
+```bash
+# Connect to PostgreSQL
+psql -U postgres -d eg_pgr
+
+# List all tables
+\dt
+
+# Check flyway_schema_history
+SELECT * FROM flyway_schema_history;
+
+# Exit psql
+\q
+```
 
