@@ -1,36 +1,33 @@
 package com.example.pgrown30.service.impl;
 
-import com.digit.services.notification.model.SendEmailRequest;
-import com.digit.services.notification.model.SendSMSRequest;
 import com.digit.services.workflow.model.WorkflowTransitionResponse;
 import com.example.pgrown30.config.PgrConfig;
 import com.example.pgrown30.domain.CitizenServiceEntity;
 import com.example.pgrown30.domain.Status;
 import com.example.pgrown30.mapper.CitizenServiceMapper;
 import com.example.pgrown30.repository.CitizenServiceRepository;
-import com.example.pgrown30.client.*;
-import com.example.pgrown30.util.*;
+import com.example.pgrown30.client.BoundaryService;
+import com.example.pgrown30.client.IdGenService;
+import com.example.pgrown30.client.NotificationService;
+import com.example.pgrown30.client.WorkflowService;
+import com.example.pgrown30.util.FileStoreUtil;
 import com.example.pgrown30.service.ServiceService;
-import com.example.pgrown30.web.models.CitizenService;
-import com.example.pgrown30.web.models.ResponseInfo;
 import com.example.pgrown30.web.models.ServiceResponse;
 import com.example.pgrown30.web.models.ServiceWrapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 import org.springframework.data.jpa.domain.Specification;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Root;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.criteria.JoinType;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ServiceServiceImpl implements ServiceService {
 
     private final CitizenServiceRepository citizenServiceRepository;
@@ -41,376 +38,366 @@ public class ServiceServiceImpl implements ServiceService {
     private final WorkflowService workflowService;
     private final PgrConfig pgrConfig;
 
-    public ServiceServiceImpl(
-            CitizenServiceRepository citizenServiceRepository,
-            IdGenService idGenService,
-            FileStoreUtil fileStoreUtil,
-            BoundaryService boundaryService,
-            NotificationService notificationService,
-            WorkflowService workflowService,
-            PgrConfig pgrConfig) {
-
-        this.citizenServiceRepository = citizenServiceRepository;
-        this.idGenService = idGenService;
-        this.fileStoreUtil = fileStoreUtil;
-        this.boundaryService = boundaryService;
-        this.notificationService = notificationService;
-        this.workflowService = workflowService;
-        this.pgrConfig = pgrConfig;
-    }
-
-    @Value("${pgr.workflow.processId}")
-    private String workflowProcessId;
-
+    // -------------------------
+    // CREATE
+    // -------------------------
     @Override
-public ServiceResponse createService(ServiceWrapper wrapper, List<String> roles) {
-    CitizenService dto = wrapper.getService();
+    @Transactional
+    public ServiceResponse createService(ServiceWrapper wrapper, List<String> roles) {
+        // Basic checks
+        if (wrapper == null || wrapper.getService() == null) {
+            log.error("Invalid request: wrapper or service is null");
+            return new ServiceResponse(Collections.emptyList(), Collections.emptyList());
+        }
 
-    CitizenServiceEntity service = CitizenServiceMapper.toEntity(dto);
-    String newId = idGenService.generateId("service_request");
-    long now = Instant.now().toEpochMilli();
+        // Extract DTO
+        com.example.pgrown30.web.models.CitizenService citizenService = wrapper.getService();
+        log.debug("createService: incoming DTO = {}", citizenService);
 
-    if (dto.getSource() == null || dto.getSource().isEmpty()) {
-        log.warn("Source not provided, defaulting to 'Citizen' for serviceRequestId={}", newId);
-        service.setSource("Citizen");
+        // --- generate id, timestamps, defaults ---
+        String newId = idGenService.generateId("service_request");
+        long now = Instant.now().toEpochMilli();
+
+        citizenService.setServiceRequestId(newId);
+        citizenService.setCreatedTime(now);
+        citizenService.setLastModifiedTime(now);
+
+        if (citizenService.getSource() == null || citizenService.getSource().isBlank()) {
+            citizenService.setSource("Citizen");
+        }
+
+        // --- validate boundary and filestore (if present) ---
+        try {
+            validateBoundaryIfPresent(citizenService);
+            validateFileIfPresent(citizenService);
+        } catch (Exception e) {
+            log.error("External validation failed (boundary/filestore): {}", e.getMessage(), e);
+            // continue for now — policy decision to continue rather than abort
+        }
+
+        // --- map DTO -> entity ---
+        CitizenServiceEntity entity = CitizenServiceMapper.toEntity(citizenService);
+
+        // --- start workflow ---
+        String initialAction = "APPLY";
+        Map<String, List<String>> attributes = Map.of("roles", roles == null ? List.of() : roles);
+        String processId = pgrConfig.getProcessId();
+
+        WorkflowTransitionResponse wfResp = null;
+        try {
+            wfResp = workflowService.transition(
+                    citizenService.getServiceRequestId(),
+                    initialAction,
+                    "Complaint submitted",
+                    attributes
+            );
+            log.debug("Workflow started: id={} state={}", wfResp == null ? null : wfResp.getId(),
+                    wfResp == null ? null : wfResp.getCurrentState());
+        } catch (Exception ex) {
+            log.error("Failed to start workflow for {}: {}", citizenService.getServiceRequestId(), ex.getMessage(), ex);
+            wfResp = null;
+        }
+
+        // attach workflow info to entity and set status
+        if (wfResp != null) {
+            entity.setWorkflowInstanceId(wfResp.getId());
+            entity.setProcessId(processId);
+            try {
+                entity.setApplicationStatus(Status.valueOf(wfResp.getCurrentState()));
+            } catch (IllegalArgumentException e) {
+                log.warn("Unknown workflow state '{}', defaulting to INITIATED", wfResp.getCurrentState());
+                entity.setApplicationStatus(Status.INITIATED);
+            }
+        } else {
+            entity.setApplicationStatus(Status.INITIATED);
+        }
+
+        // --- persist entity ---
+        CitizenServiceEntity saved = citizenServiceRepository.save(entity);
+        log.debug("Saved citizen service with id={}", saved.getServiceRequestId());
+
+        // --- map saved entity -> DTO response ---
+        com.example.pgrown30.web.models.CitizenService responseDto = CitizenServiceMapper.toDto(saved);
+
+        if (wfResp != null) {
+            responseDto.setWorkflowInstanceId(wfResp.getId());
+            responseDto.setApplicationStatus(wfResp.getCurrentState() != null ? wfResp.getCurrentState() : responseDto.getApplicationStatus());
+            responseDto.setAction(wfResp.getAction());
+        } else {
+            responseDto.setApplicationStatus(Status.INITIATED.name());
+        }
+
+        ServiceWrapper responseWrapper = ServiceWrapper.builder()
+                .service(responseDto)
+                .workflow(wrapper.getWorkflow())
+                .build();
+
+        // --- notifications (async) ---
+        try {
+            sendCreateNotificationsIfNeeded(saved);
+        } catch (Exception e) {
+            log.error("Failed to trigger notifications for {}: {}", saved.getServiceRequestId(), e.getMessage(), e);
+        }
+
+        // final response
+        return new ServiceResponse(List.of(responseDto), List.of(responseWrapper));
     }
 
-    service.setServiceRequestId(newId);
-    service.setCreatedTime(now);
-    service.setLastModifiedTime(now);
+    // -------------------------
+    // UPDATE
+    // -------------------------
+    @Override
+    @Transactional
+    public ServiceResponse updateService(ServiceWrapper wrapper, List<String> roles) {
+        // Step 1: basic validation
+        if (wrapper == null || wrapper.getService() == null) {
+            log.error("Invalid update request: wrapper or service is null");
+            return new ServiceResponse(Collections.emptyList(), Collections.emptyList());
+        }
 
-    validateBoundary(service);
-    //validateFileStore(service);
+        var citizenService = wrapper.getService();
+        log.debug("updateService called for requestId={} tenant={}",
+                citizenService.getServiceRequestId(), citizenService.getTenantId());
 
-    String processId = pgrConfig.getProcessId();
-    WorkflowTransitionResponse workflowTransitionResponse = startWorkflow(service, newId, processId, roles);
+        // Step 2: load existing entity and validate
+        String serviceRequestId = citizenService.getServiceRequestId();
+        String tenantId = citizenService.getTenantId();
 
-    // Set workflow instance ID and process ID
-    service.setWorkflowInstanceId(workflowTransitionResponse.getId());
-    service.setProcessId(processId);
-    
-    // Convert workflow state to Status enum
-    try {
-        Status status = Status.valueOf(workflowTransitionResponse.getCurrentState());
-        service.setApplicationStatus(status);
-    } catch (IllegalArgumentException e) {
-        log.warn("Unknown status: {}", workflowTransitionResponse.getCurrentState());
-        service.setApplicationStatus(Status.INITIATED);
-    }
-
-    citizenServiceRepository.save(service);
-
-    // Send notifications only if service is valid
-    sendNotifications(service, wrapper.getWorkflow().getAction());
-
-
-    CitizenService responseDto = CitizenServiceMapper.toDto(service);
-    responseDto.setApplicationStatus(workflowTransitionResponse.getStatus());
-    responseDto.setWorkflowInstanceId(workflowTransitionResponse.getId());
-    responseDto.setAction(workflowTransitionResponse.getAction());
-
-    // Build Notification object for response
-    SendEmailRequest notification = SendEmailRequest.builder()
-    .templateId("service-request-received-new")
-    .version("1.0.0")
-    .emailIds(List.of(service.getEmail()))
-    .payload(Map.of(
-        "serviceName", service.getDescription(),
-        "serviceRequestId", service.getServiceRequestId()
-    ))
-    .build();
-
-    ServiceWrapper responseWrapper = ServiceWrapper.builder()
-            .service(responseDto)
-            .workflow(wrapper.getWorkflow())
-            .build();
-
-    return new ServiceResponse(List.of(responseDto), List.of(responseWrapper));
-}
-
- @Override
-public ServiceResponse updateService(ServiceWrapper wrapper, List<String> roles) {
-    CitizenService dto = wrapper.getService();
-    CitizenServiceEntity service = CitizenServiceMapper.toEntity(dto);
-
-    CitizenServiceEntity existing = citizenServiceRepository
-            .findById(service.getServiceRequestId())
-            .orElseThrow(() -> new RuntimeException("Service not found: " + service.getServiceRequestId()));
-
-    if (dto.getBoundaryCode() != null) {
-        boolean isValid = boundaryService.isBoundaryValid(dto.getBoundaryCode());
-        service.setBoundaryValid(isValid);
-    }
-
-    String workflowAction = wrapper.getWorkflow() != null ? wrapper.getWorkflow().getAction() : null;
-
-
-    if (!isWorkflowProcessValid(existing.getTenantId(), workflowProcessId)) {
-        throw new RuntimeException("Workflow process not found: " + workflowProcessId);
-    }
-
-     WorkflowTransitionResponse workflowResponse = workflowService.updateProcessInstance(
-            wrapper.getService().getServiceRequestId(),
-            workflowProcessId,
-            workflowAction,
-            roles
-    );
-
-    existing.setDescription(service.getDescription());
-
-    // Convert workflow state to Status enum
-    try {
-        Status status = Status.valueOf(workflowResponse.getCurrentState());
-        existing.setApplicationStatus(status);
-    } catch (IllegalArgumentException e) {
-        log.warn("Unknown status: {}", workflowResponse.getCurrentState());
-        existing.setApplicationStatus(Status.INITIATED);
-    }
-
-    existing.setLastModifiedTime(Instant.now().toEpochMilli());
-
-//    if (existing.getFileStoreId() != null) {
-//        existing.setFileValid(fileStoreRepository.isFileValid(existing.getTenantId(), existing.getFileStoreId()));
-//    }
-
-    citizenServiceRepository.save(existing);
-
-    if (isServiceValid(existing)) {
-        sendNotifications(existing, wrapper.getWorkflow().getAction());
-    } else {
-        log.warn("Notifications skipped for serviceRequestId={} due to validation failures", existing.getServiceRequestId());
-    }
-
-    CitizenService responseDto = CitizenServiceMapper.toDto(existing);
-
-
-
-    // ✅ FIX: build responseWrapper before returning
-    ServiceWrapper responseWrapper = ServiceWrapper.builder()
-            .service(responseDto)
-            .workflow(wrapper.getWorkflow())
-            .build();
-
-    return new ServiceResponse(List.of(responseDto), List.of(responseWrapper));
-}
-
-
-    @Transactional(readOnly = true)
-    public ServiceResponse searchServicesById(String serviceRequestId, String tenantId) {
         if (serviceRequestId == null || serviceRequestId.isBlank()) {
+            log.error("updateService: serviceRequestId is required");
             throw new RuntimeException("serviceRequestId is required");
         }
 
-        if (tenantId == null || tenantId.isBlank()) {
-            throw new RuntimeException("X-Tenant-ID (tenantId) is required");
+        var maybeExisting = citizenServiceRepository.findByServiceRequestIdAndTenantId(serviceRequestId, tenantId);
+        if (maybeExisting.isEmpty()) {
+            log.error("Service not found for id={} tenant={}", serviceRequestId, tenantId);
+            throw new RuntimeException("Service not found: " + serviceRequestId);
         }
 
-        Optional<CitizenServiceEntity> maybe =
-                citizenServiceRepository.findByServiceRequestIdAndTenantId(serviceRequestId, tenantId);
+        CitizenServiceEntity existing = maybeExisting.get();
+        log.debug("Found existing entity id={} status={}", existing.getServiceRequestId(), existing.getApplicationStatus());
 
-        List<CitizenService> serviceDTOs = maybe
-                .map(CitizenServiceMapper::toDto)
-                .map(List::of)
-                .orElseGet(List::of);
+        // Step 3: apply incoming changes (only when provided) and refresh validations/timestamps
+        applyPartialUpdates(existing, citizenService);
 
-        return new ServiceResponse(serviceDTOs, Collections.emptyList());
+        // Step 4: perform workflow transition when an action is provided
+        String workflowAction = (wrapper.getWorkflow() != null) ? wrapper.getWorkflow().getAction() : null;
+        WorkflowTransitionResponse workflowResp = null;
+
+        if (workflowAction != null && !workflowAction.isBlank()) {
+            try {
+                Map<String, List<String>> wfAttrs = Map.of("roles", roles == null ? List.of() : roles);
+                workflowResp = workflowService.updateProcessInstance(
+                        existing.getServiceRequestId(),
+                        pgrConfig.getProcessId(),
+                        workflowAction,
+                        roles
+                );
+                log.debug("Workflow transition returned: id={}, state={}", workflowResp.getId(), workflowResp.getCurrentState());
+            } catch (Exception e) {
+                log.error("Workflow transition failed for {} action={}: {}", existing.getServiceRequestId(), workflowAction, e.getMessage(), e);
+            }
+        }
+
+        // If WF returned data, update entity status/instance id
+        if (workflowResp != null) {
+            existing.setWorkflowInstanceId(workflowResp.getId());
+            try {
+                existing.setApplicationStatus(Status.valueOf(workflowResp.getCurrentState()));
+            } catch (IllegalArgumentException ex) {
+                log.warn("Unknown workflow state '{}'; leaving previous status", workflowResp.getCurrentState());
+            }
+        }
+
+        // Step 5: persist updated entity
+        CitizenServiceEntity saved = citizenServiceRepository.save(existing);
+        log.debug("Updated citizen service saved: id={} status={}", saved.getServiceRequestId(), saved.getApplicationStatus());
+
+        // Step 6: prepare DTO response
+        com.example.pgrown30.web.models.CitizenService responseDto = CitizenServiceMapper.toDto(saved);
+
+        if (workflowResp != null) {
+            responseDto.setWorkflowInstanceId(workflowResp.getId());
+            responseDto.setApplicationStatus(
+                    workflowResp.getCurrentState() != null
+                            ? workflowResp.getCurrentState()
+                            : responseDto.getApplicationStatus());
+            responseDto.setAction(workflowResp.getAction());
+        }
+
+        ServiceWrapper responseWrapper = ServiceWrapper.builder()
+                .service(responseDto)
+                .workflow(wrapper.getWorkflow())
+                .build();
+
+        // Step 7: notifications (async)
+        try {
+            sendUpdateNotificationsIfNeeded(saved, workflowAction);
+        } catch (Exception e) {
+            log.error("Failed to trigger notifications for {}: {}", saved.getServiceRequestId(), e.getMessage(), e);
+        }
+
+        // Final: return ServiceResponse
+        return new ServiceResponse(List.of(responseDto), List.of(responseWrapper));
     }
 
-
-
+    // -------------------------
+    // SEARCH
+    // -------------------------
     @Override
-public ServiceResponse searchServices(ServiceWrapper wrapper) {
-    CitizenService dto = wrapper.getService();
-
-    Specification<CitizenServiceEntity> spec = Specification.where(
-        (root, query, cb) -> cb.equal(root.get("tenantId"), dto.getTenantId())
-    );
-
-    if (dto.getServiceCode() != null && !dto.getServiceCode().isEmpty()) {
-        spec = spec.and((root, query, cb) -> cb.equal(root.get("serviceCode"), dto.getServiceCode()));
-    }
-
-    if (dto.getApplicationStatus() != null && !dto.getApplicationStatus().isEmpty()) {
-        spec = spec.and((root, query, cb) ->
-            cb.equal(root.get("applicationStatus"), Status.valueOf(dto.getApplicationStatus()))
-        );
-    }
-
-    List<CitizenServiceEntity> results = citizenServiceRepository.findAll(spec);
-
-    List<CitizenService> serviceDTOs = results.stream()
-            .map(CitizenServiceMapper::toDto)
-            .collect(Collectors.toList());
-
-    return new ServiceResponse(serviceDTOs,  Collections.emptyList());
-
-}
-
-
-    // --- Helper Methods ---
-
-    private void validateBoundary(CitizenServiceEntity service) {
-    if (service.getBoundaryCode() != null) {
-        boolean isValid = boundaryService.isBoundaryValid(
-                service.getBoundaryCode()
-        );
-        service.setBoundaryValid(isValid);
-
-        if (!isValid) {
-            log.warn("Boundary code {} is invalid for tenant {}", 
-                     service.getBoundaryCode(), service.getTenantId());
-        }
-    }
-    }
-
-    private void validateFileStore(CitizenServiceEntity service) {
-        if (service.getFileStoreId() != null) {
-            service.setFileValid(fileStoreUtil.isFileValid(service.getTenantId(), service.getFileStoreId()));
-        }
-    }
-
-    private WorkflowTransitionResponse startWorkflow(CitizenServiceEntity service, String complaintNumber, String processId, List<String> roles) {
-        String initialAction = "APPLY";
-
-        Map<String, List<String>> attributes = new HashMap<>();
-        attributes.put("roles", roles);
-
-        WorkflowTransitionResponse workflowTransitionResponse = workflowService.transition(
-                 complaintNumber,
-                initialAction, "Complaint submitted", attributes
-        );
-
-        return workflowTransitionResponse;
-       /* Map<String, Object> latest = workflowRepository.getLatestInstance(tenantId, processId, complaintNumber);
-        String wfInstanceId = extractWorkflowInstanceId(transitionResp, latest);
-        String currentState = extractWorkflowState(latest);
-
-        if (wfInstanceId == null) {
-            throw new RuntimeException("Workflow started but instance id could not be determined for " + complaintNumber);
+    @Transactional(readOnly = true)
+    public ServiceResponse searchService(String tenantId,
+                                         String serviceRequestId,
+                                         String serviceCode,
+                                         String applicationStatus,
+                                         String mobileNumber,
+                                         String locality) {
+        // Fast path: search by exact serviceRequestId + tenant
+        if (serviceRequestId != null && !serviceRequestId.isBlank()) {
+            Optional<CitizenServiceEntity> maybe = citizenServiceRepository.findByServiceRequestIdAndTenantId(serviceRequestId, tenantId);
+            List<com.example.pgrown30.web.models.CitizenService> dtos = maybe
+                    .map(CitizenServiceMapper::toDto)
+                    .map(List::of)
+                    .orElseGet(List::of);
+            return new ServiceResponse(dtos, Collections.emptyList());
         }
 
-        Status status = currentState != null ? Status.valueOf(currentState) : Status.INITIATED;
-        return new WorkflowResult(wfInstanceId, initialAction, status);*/
-    }
+        // Build dynamic specification
+        Specification<CitizenServiceEntity> spec = Specification.where(
+                (root, query, cb) -> cb.equal(root.get("tenantId"), tenantId)
+        );
 
-    private String extractWorkflowInstanceId(Map<String, Object> transitionResp, Map<String, Object> latest) {
-        if (latest != null) {
-            if (latest.get("id") != null) return String.valueOf(latest.get("id"));
-            if (latest.get("data") instanceof Map) {
-                Map<?, ?> data = (Map<?, ?>) latest.get("data");
-                if (data.get("id") != null) return String.valueOf(data.get("id"));
+        if (serviceCode != null && !serviceCode.isBlank()) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("serviceCode"), serviceCode));
+        }
+
+        if (applicationStatus != null && !applicationStatus.isBlank()) {
+            try {
+                Status statusEnum = Status.valueOf(applicationStatus);
+                spec = spec.and((root, query, cb) -> cb.equal(root.get("applicationStatus"), statusEnum));
+            } catch (IllegalArgumentException e) {
+                log.warn("searchService: unknown applicationStatus '{}'", applicationStatus);
+                return new ServiceResponse(Collections.emptyList(), Collections.emptyList());
             }
         }
-        if (transitionResp != null && transitionResp.get("id") != null) {
-            return String.valueOf(transitionResp.get("id"));
+
+        if (mobileNumber != null && !mobileNumber.isBlank()) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("mobile"), mobileNumber));
         }
-        return null;
+
+        if (locality != null && !locality.isBlank()) {
+            spec = spec.and((root, query, cb) -> {
+                root.join("addresses", JoinType.LEFT);
+                query.distinct(true);
+
+                String pattern = "%" + locality.trim().toLowerCase() + "%";
+                javax.persistence.criteria.Join<CitizenServiceEntity, ?> addrJoin = root.join("addresses", JoinType.LEFT);
+
+                javax.persistence.criteria.Predicate cityLike = cb.like(cb.lower(addrJoin.get("city")), pattern);
+                javax.persistence.criteria.Predicate addressLike = cb.like(cb.lower(addrJoin.get("address")), pattern);
+                javax.persistence.criteria.Predicate pincodeEq = cb.equal(addrJoin.get("pincode"), locality.trim());
+
+                return cb.or(cityLike, addressLike, pincodeEq);
+            });
+        }
+
+        List<CitizenServiceEntity> results = citizenServiceRepository.findAll(spec);
+
+        List<com.example.pgrown30.web.models.CitizenService> dtos = results.stream()
+                .map(CitizenServiceMapper::toDto)
+                .collect(Collectors.toList());
+
+        return new ServiceResponse(dtos, Collections.emptyList());
     }
 
-    private String extractWorkflowState(Map<String, Object> latest) {
-        if (latest != null) {
-            if (latest.get("state") != null) return String.valueOf(latest.get("state"));
-            if (latest.get("data") instanceof Map) {
-                Map<?, ?> data = (Map<?, ?>) latest.get("data");
-                if (data.get("state") != null) return String.valueOf(data.get("state"));
+    // -------------------------
+    // Private helpers
+    // -------------------------
+    private void validateBoundaryIfPresent(com.example.pgrown30.web.models.CitizenService citizenService) {
+        if (citizenService.getBoundaryCode() != null && !citizenService.getBoundaryCode().isBlank()) {
+            boolean boundaryValid = boundaryService.isBoundaryValid(citizenService.getBoundaryCode());
+            citizenService.setBoundaryValid(boundaryValid);
+            if (!boundaryValid) {
+                log.warn("Boundary {} is invalid for tenant {}", citizenService.getBoundaryCode(), citizenService.getTenantId());
             }
         }
-        return null;
     }
 
-    private boolean isWorkflowProcessValid(String tenantId, String processId) {
-        return workflowService.processExists(tenantId, processId);
+    private void validateFileIfPresent(com.example.pgrown30.web.models.CitizenService citizenService) {
+        if (citizenService.getFileStoreId() != null && !citizenService.getFileStoreId().isBlank()) {
+            boolean fileValid = fileStoreUtil.isFileValid(citizenService.getTenantId(), citizenService.getFileStoreId());
+            citizenService.setFileValid(fileValid);
+            if (!fileValid) {
+                log.warn("FileStoreId {} is invalid or inaccessible for tenant {}", citizenService.getFileStoreId(), citizenService.getTenantId());
+            }
+        }
     }
 
-    private static class WorkflowResult {
-        private final String instanceId;
-        private final String initialAction;
-        private final Status status;
+    private void applyPartialUpdates(CitizenServiceEntity existing, com.example.pgrown30.web.models.CitizenService citizenService) {
+        if (citizenService.getDescription() != null) existing.setDescription(citizenService.getDescription());
+        if (citizenService.getServiceCode() != null) existing.setServiceCode(citizenService.getServiceCode());
+        if (citizenService.getAccountId() != null) existing.setAccountId(citizenService.getAccountId());
+        if (citizenService.getSource() != null) existing.setSource(citizenService.getSource());
+        if (citizenService.getEmail() != null) existing.setEmail(citizenService.getEmail());
+        if (citizenService.getMobile() != null) existing.setMobile(citizenService.getMobile());
 
-        public WorkflowResult(String instanceId, String initialAction, Status status) {
-            this.instanceId = instanceId;
-            this.initialAction = initialAction;
-            this.status = status;
+        // file changed -> revalidate
+        if (citizenService.getFileStoreId() != null && !citizenService.getFileStoreId().equals(existing.getFileStoreId())) {
+            existing.setFileStoreId(citizenService.getFileStoreId());
+            try {
+                boolean fileValid = fileStoreUtil.isFileValid(existing.getTenantId(), existing.getFileStoreId());
+                existing.setFileValid(fileValid);
+                if (!fileValid) log.warn("File {} invalid for tenant {}", existing.getFileStoreId(), existing.getTenantId());
+            } catch (Exception e) {
+                log.error("File validation failed: {}", e.getMessage(), e);
+            }
         }
 
-        public String getInstanceId() { return instanceId; }
-        public String getInitialAction() { return initialAction; }
-        public Status getStatus() { return status; }
+        // boundary changed -> revalidate
+        if (citizenService.getBoundaryCode() != null && !citizenService.getBoundaryCode().equals(existing.getBoundaryCode())) {
+            existing.setBoundaryCode(citizenService.getBoundaryCode());
+            try {
+                boolean boundaryValid = boundaryService.isBoundaryValid(existing.getBoundaryCode());
+                existing.setBoundaryValid(boundaryValid);
+                if (!boundaryValid) log.warn("Boundary {} invalid for tenant {}", existing.getBoundaryCode(), existing.getTenantId());
+            } catch (Exception e) {
+                log.error("Boundary validation failed: {}", e.getMessage(), e);
+            }
+        }
+
+        existing.setLastModifiedTime(Instant.now().toEpochMilli());
     }
 
-private void sendNotifications(CitizenServiceEntity service, String workflowAction) {
- //   if (service.getTenantId() == null) return;
-
-    // Determine workflow action for dynamic templates
-  //  String workflowAction = service.getAction() != null ? service.getAction() : "APPLY";
-
-    // Map workflow actions to SMS templates
-    Map<String, String> smsTemplates = Map.of(
-        "APPLY", "service-initiated",
-        "ASSIGN", "service-assigned",
-        "RESOLVE", "service-resolved",
-        "CLOSE", "service-closed"
-    );
-    String smsTemplate = smsTemplates.getOrDefault(workflowAction, "service-update");
-
-    // --- Email Notification ---
-    if (service.getEmail() != null && !service.getEmail().isEmpty()) {
-        List<String> emails = List.of(service.getEmail());
-        Map<String, Object> emailPayload = Map.of(
-                "applicationNo", service.getServiceRequestId(),
-                "citizenName", service.getAccountId(),
-                "serviceName", service.getDescription(),
-                "statusLabel", service.getApplicationStatus(),
-                "action", workflowAction,
-                "trackUrl", "https://pgr.digit.org/track/" + service.getServiceRequestId(),
-                "ulbName", "Hyderabad Municipal Corporation"
-        );
-
-        List<String> attachments = service.getFileStoreId() != null ? List.of(service.getFileStoreId()) : Collections.emptyList();
-
-        try {
-            notificationService.sendEmail(
-                    "service-request-received",
-                    emails,
-                    emailPayload,
-                    attachments
+    private void sendCreateNotificationsIfNeeded(CitizenServiceEntity saved) {
+        if (saved.getEmail() != null && !saved.getEmail().isBlank()) {
+            List<String> emails = List.of(saved.getEmail());
+            Map<String, Object> emailPayload = Map.of(
+                    "applicationNo", saved.getServiceRequestId(),
+                    "citizenName", saved.getAccountId() == null ? "" : saved.getAccountId(),
+                    "serviceName", saved.getDescription(),
+                    "statusLabel", saved.getApplicationStatus() == null ? Status.INITIATED.name() : saved.getApplicationStatus().toString(),
+                    "trackUrl", "https://pgr.digit.org/track/" + saved.getServiceRequestId()
             );
-            log.info("Email notification triggered for serviceRequestId={}", service.getServiceRequestId());
-        } catch (Exception e) {
-            log.error("Failed to send email for serviceRequestId={}: {}", service.getServiceRequestId(), e.getMessage());
+            List<String> attachments = saved.getFileStoreId() != null ? List.of(saved.getFileStoreId()) : Collections.emptyList();
+            notificationService.sendEmail("service-request-received", emails, emailPayload, attachments);
+            log.info("Triggered email notification for {}", saved.getServiceRequestId());
         }
     }
 
-    // --- SMS Notification ---
-    /*if (service.getMobile() != null && !service.getMobile().isEmpty()) {
-        List<String> mobiles = List.of(service.getMobile());
-        Map<String, Object> smsPayload = Map.of(
-                "applicationNo", service.getServiceRequestId(),
-                "serviceName", service.getDescription(),
-                "statusLabel", service.getApplicationStatus(),
-                "action", workflowAction
-        );
-
-        try {
-            notificationRepository.sendSms(
-                    smsTemplate,
-                    mobiles,
-                    smsPayload,
-                    "INFO"
+    private void sendUpdateNotificationsIfNeeded(CitizenServiceEntity saved, String workflowAction) {
+        if (saved.getEmail() != null && !saved.getEmail().isBlank()) {
+            List<String> emails = List.of(saved.getEmail());
+            Map<String, Object> emailPayload = Map.of(
+                    "applicationNo", saved.getServiceRequestId(),
+                    "citizenName", saved.getAccountId() == null ? "" : saved.getAccountId(),
+                    "serviceName", saved.getDescription(),
+                    "statusLabel", saved.getApplicationStatus() == null ? Status.INITIATED.name() : saved.getApplicationStatus().toString(),
+                    "action", workflowAction == null ? "" : workflowAction,
+                    "trackUrl", "https://pgr.digit.org/track/" + saved.getServiceRequestId()
             );
-            log.info("SMS notification triggered for serviceRequestId={}", service.getServiceRequestId());
-        } catch (Exception e) {
-            log.error("Failed to send SMS for serviceRequestId={}: {}", service.getServiceRequestId(), e.getMessage());
+            List<String> attachments = saved.getFileStoreId() != null ? List.of(saved.getFileStoreId()) : Collections.emptyList();
+            notificationService.sendEmail("service-update", emails, emailPayload, attachments);
+            log.info("Triggered update email for {}", saved.getServiceRequestId());
         }
-    }*/
-}
-
-
-// --- Helper Method ---
-private boolean isServiceValid(CitizenServiceEntity service) {
-    return Boolean.TRUE.equals(service.getBoundaryValid()) &&
-           (service.getFileStoreId() == null || Boolean.TRUE.equals(service.getFileValid()));
-}
-
-
+    }
 }
