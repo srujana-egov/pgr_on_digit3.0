@@ -1,7 +1,6 @@
 package com.example.pgrown30.service.impl;
 
 import com.digit.services.workflow.model.WorkflowTransitionResponse;
-import com.example.pgrown30.config.PgrConfig;
 import com.example.pgrown30.domain.CitizenServiceEntity;
 import com.example.pgrown30.domain.Status;
 import com.example.pgrown30.mapper.CitizenServiceMapper;
@@ -16,6 +15,7 @@ import com.example.pgrown30.web.models.ServiceResponse;
 import com.example.pgrown30.web.models.ServiceWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,7 +36,10 @@ public class ServiceServiceImpl implements ServiceService {
     private final BoundaryService boundaryService;
     private final NotificationService notificationService;
     private final WorkflowService workflowService;
-    private final PgrConfig pgrConfig;
+
+    // Injected directly from application.properties -> allows deleting PgrConfig
+    @Value("${pgr.workflow.processId}")
+    private String workflowProcessId;
 
     // -------------------------
     // CREATE
@@ -81,7 +84,7 @@ public class ServiceServiceImpl implements ServiceService {
         // --- start workflow ---
         String initialAction = "APPLY";
         Map<String, List<String>> attributes = Map.of("roles", roles == null ? List.of() : roles);
-        String processId = pgrConfig.getProcessId();
+        String processId = workflowProcessId;
 
         WorkflowTransitionResponse wfResp = null;
         try {
@@ -189,7 +192,7 @@ public class ServiceServiceImpl implements ServiceService {
                 Map<String, List<String>> wfAttrs = Map.of("roles", roles == null ? List.of() : roles);
                 workflowResp = workflowService.updateProcessInstance(
                         existing.getServiceRequestId(),
-                        pgrConfig.getProcessId(),
+                        workflowProcessId,
                         workflowAction,
                         roles
                 );
