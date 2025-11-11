@@ -191,10 +191,27 @@ components:
 
     Error:
       type: object
+      required:
+        - code
+        - message
       properties:
-        error:
+        code:
           type: string
-
+          description: "Module-specific error code."
+          example: "User.NotFound"
+        message:
+          type: string
+          description: "Readable error message."
+          example: "User not found."
+        description:
+          type: string
+          description: "Optional long description for debugging."
+        params:
+          type: array
+          description: "Optional placeholders for dynamic messages."
+          items:
+            type: string
+              
   responses:
     TooManyRequests:
       description: Too many requests
