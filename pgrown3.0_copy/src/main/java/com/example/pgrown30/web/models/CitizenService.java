@@ -8,7 +8,16 @@ import lombok.*;
 import java.util.List;
 
 @Entity
-@Table(name = "citizen_service")
+@Table(
+    name = "citizen_service",
+    indexes = {
+        @Index(columnList = "tenant_id"),
+        @Index(columnList = "service_code"),
+        @Index(columnList = "application_status"),
+        @Index(columnList = "account_id"),
+        @Index(columnList = "boundary_code")
+    }
+)
 @Getter
 @Setter
 @Builder
@@ -39,6 +48,9 @@ public class CitizenService {
     @Enumerated(EnumType.STRING)
     @Column(name = "application_status")
     private Status applicationStatus;
+    
+    @Transient
+    private String action;
 
     @Column(name = "file_store_id")
     private String fileStoreId;
@@ -86,4 +98,5 @@ public class CitizenService {
     @OneToMany(mappedBy = "citizenService", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference
     private List<CitizenAudit> audits;
+
 }

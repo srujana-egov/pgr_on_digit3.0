@@ -19,13 +19,17 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.springframework.data.jpa.domain.Specification.where;
+
 @Slf4j
 @Service
+@Transactional(timeout = 30)
 @RequiredArgsConstructor
 public class ServiceServiceImpl implements ServiceService {
 
@@ -55,7 +59,7 @@ public class ServiceServiceImpl implements ServiceService {
         log.debug("createService: incoming DTO = {}", citizenService);
 
         // generate id, timestamps, defaults
-        String newId = idGenService.generateId("service_request");
+        String newId = idGenService.generateId("pgr");
         long now = Instant.now().toEpochMilli();
 
         citizenService.setServiceRequestId(newId);
@@ -276,11 +280,11 @@ public class ServiceServiceImpl implements ServiceService {
                 query.distinct(true);
 
                 String pattern = "%" + locality.trim().toLowerCase() + "%";
-                javax.persistence.criteria.Join<CitizenService, ?> addrJoin = root.join("addresses", JoinType.LEFT);
+                var addrJoin = root.join("addresses", JoinType.LEFT);
 
-                javax.persistence.criteria.Predicate cityLike = cb.like(cb.lower(addrJoin.get("city")), pattern);
-                javax.persistence.criteria.Predicate addressLike = cb.like(cb.lower(addrJoin.get("address")), pattern);
-                javax.persistence.criteria.Predicate pincodeEq = cb.equal(addrJoin.get("pincode"), locality.trim());
+                Predicate cityLike = cb.like(cb.lower(addrJoin.get("city")), pattern);
+                Predicate addressLike = cb.like(cb.lower(addrJoin.get("address")), pattern);
+                Predicate pincodeEq = cb.equal(addrJoin.get("pincode"), locality.trim());
 
                 return cb.or(cityLike, addressLike, pincodeEq);
             });
@@ -292,6 +296,25 @@ public class ServiceServiceImpl implements ServiceService {
         return new ServiceResponse(dtos, Collections.emptyList());
     }
 
+    // -------------------------
+    // Search by ID
+    // -------------------------
+    @Override
+    @Transactional(readOnly = true)
+    public ServiceResponse searchServicesById(String serviceRequestId, String tenantId) {
+        if (serviceRequestId == null || serviceRequestId.isBlank()) {
+            log.warn("searchServicesById called with null/empty serviceRequestId");
+            return new ServiceResponse(Collections.emptyList(), Collections.emptyList());
+        }
+        
+        Optional<CitizenService> service = citizenServiceRepository.findByServiceRequestIdAndTenantId(serviceRequestId, tenantId);
+        if (service.isEmpty()) {
+            return new ServiceResponse(Collections.emptyList(), Collections.emptyList());
+        }
+        
+        return new ServiceResponse(Collections.singletonList(service.get()), Collections.emptyList());
+    }
+    
     // -------------------------
     // Private helpers
     // -------------------------

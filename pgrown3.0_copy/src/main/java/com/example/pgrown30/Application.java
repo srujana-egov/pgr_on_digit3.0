@@ -8,7 +8,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 
 @SpringBootApplication
 @EnableAsync
-@EntityScan(basePackages = "com.example.pgrown30.domain")
+@EntityScan(basePackages = "com.example.pgrown30.web.models")
 @EnableJpaRepositories(basePackages = "com.example.pgrown30.repository")
 public class Application {
     public static void main(String[] args) {
