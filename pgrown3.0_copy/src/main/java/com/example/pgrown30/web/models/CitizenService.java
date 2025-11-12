@@ -40,9 +40,8 @@ public class CitizenService {
     @Column(name = "source")
     private String source;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "application_status")
-    private Status applicationStatus;
+    private String applicationStatus;
     
     @Transient
     private String action;

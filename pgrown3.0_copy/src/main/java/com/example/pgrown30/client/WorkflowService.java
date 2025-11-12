@@ -4,6 +4,7 @@ import com.digit.services.workflow.WorkflowClient;
 import com.digit.services.workflow.model.WorkflowProcessResponse;
 import com.digit.services.workflow.model.WorkflowTransitionRequest;
 import com.digit.services.workflow.model.WorkflowTransitionResponse;
+
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,20 +24,11 @@ public class WorkflowService {
     
     @Value("${pgr.workflow.processCode}")
     private String processCode;
-    
-    private String cachedProcessId;
 
-    @PostConstruct
-    public void init() {
-        getProcessId();
-    }
 
     private String getProcessId() {
-        if (cachedProcessId == null) {
-            cachedProcessId = processCode;
-            log.info("Using process ID: {}", cachedProcessId);
-        }
-        return cachedProcessId;
+        System.out.println("Process id: " + workflowClient.getProcessByCode(processCode));
+        return workflowClient.getProcessByCode(processCode);
     }
 
     public WorkflowTransitionResponse transition(
@@ -67,7 +59,7 @@ public class WorkflowService {
     }
     
     WorkflowTransitionRequest request = WorkflowTransitionRequest.builder()
-        .processId(processId)
+        .processId(getProcessId())
         .entityId(entityId)
         .action(action)
         .comment(comment)
@@ -81,12 +73,4 @@ public class WorkflowService {
     return response;
 }
 
-    public WorkflowProcessResponse getProcessById(String processInstanceId) {
-        try {
-            return workflowClient.getProcessById(processInstanceId);
-        } catch (Exception e) {
-            log.error("Failed to get process by ID: {}", processInstanceId, e);
-            throw new RuntimeException("Failed to get workflow process", e);
-        }
-    }
 }

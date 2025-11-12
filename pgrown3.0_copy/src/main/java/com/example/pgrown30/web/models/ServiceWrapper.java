@@ -3,6 +3,7 @@ package com.example.pgrown30.web.models;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import com.digit.services.workflow.model.Workflow;
 import lombok.*;
 
 @Data

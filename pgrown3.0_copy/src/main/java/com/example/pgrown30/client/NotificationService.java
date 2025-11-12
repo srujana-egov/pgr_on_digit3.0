@@ -20,9 +20,9 @@ public class NotificationService {
 
     private final NotificationClient notificationClient;
 
-    @Async
     public void sendEmail(String templateId, List<String> emailIds, Map<String, Object> payload, List<String> attachments) {
         SendEmailRequest request = SendEmailRequest.builder()
+                .version("v1")
                 .templateId(templateId)
                 .emailIds(emailIds)
                 .enrich(false)
@@ -35,7 +35,7 @@ public class NotificationService {
         log.info("Email sent successfully with templateId: {}", templateId);
     }
 
-    @Async
+
     public void sendSms(String templateId, List<String> mobileNumbers, Map<String, Object> payload, String category) {
         // Use default SMS category - let's check what values are available
         SendSMSRequest.SMSCategory smsCategory = null;

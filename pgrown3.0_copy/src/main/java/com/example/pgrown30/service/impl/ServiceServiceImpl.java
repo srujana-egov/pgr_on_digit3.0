@@ -6,14 +6,12 @@ import com.example.pgrown30.web.models.AuditDetails;
 import com.example.pgrown30.web.models.CitizenService;
 import com.example.pgrown30.web.models.ServiceResponse;
 import com.example.pgrown30.web.models.ServiceWrapper;
-import com.example.pgrown30.web.models.Status;
-import com.example.pgrown30.web.models.Workflow;
 import com.example.pgrown30.client.NotificationService;
 import com.example.pgrown30.client.WorkflowService;
 import com.example.pgrown30.client.IdGenService;
 import com.example.pgrown30.repository.CitizenServiceRepository;
 import com.example.pgrown30.service.ServiceService;
-import com.example.pgrown30.util.FileStoreUtil;
+import com.example.pgrown30.client.FileStoreService;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.digit.services.workflow.model.Workflow;
 
 import java.time.Instant;
 import java.util.*;
@@ -33,7 +32,7 @@ import java.util.stream.Collectors;
 public class ServiceServiceImpl implements ServiceService {
     private final CitizenServiceRepository citizenServiceRepository;
     private final IdGenService idGenService;
-    private final FileStoreUtil fileStoreUtil;
+    private final FileStoreService fileStoreService;
     private final BoundaryService boundaryService;
     private final NotificationService notificationService;
     private final WorkflowService workflowService;
@@ -84,13 +83,13 @@ public class ServiceServiceImpl implements ServiceService {
         // Start workflow
         WorkflowTransitionResponse wfResp = startWorkflow(citizenService, "APPLY", roles);
         
-        // Attach workflow info and set status
+        // Attach workflow info and set 'status'
+        System.out.println("workflow response---------------------");
+        System.out.println(wfResp);
+
         if (wfResp != null) {
             updateCitizenServiceWithWorkflow(citizenService, wfResp);
-        } else {
-            citizenService.setApplicationStatus(Status.INITIATED);
-        }
-
+        } 
         // Persist entity
         CitizenService saved = citizenServiceRepository.save(citizenService);
         log.debug("Saved citizen service with id={}", saved.getServiceRequestId());
@@ -241,32 +240,33 @@ public class ServiceServiceImpl implements ServiceService {
     }
 
     private WorkflowTransitionResponse startWorkflow(CitizenService service, String action, List<String> roles) {
-    try {
-        Map<String, Object> attributes = new HashMap<>();
-        // This is fine because List<String> is an Object
-        attributes.put("roles", roles != null ? roles : Collections.emptyList());
-        
-        return workflowService.transition(
-                service.getServiceRequestId(),
-                action,
-                "Complaint submitted",
-                attributes
-        );
-    } catch (Exception ex) {
-        log.error("Failed to start workflow for {}: {}", 
-                service.getServiceRequestId(), ex.getMessage(), ex);
-        return null;
+        try {
+            Map<String, Object> attributes = new HashMap<>();
+            // Add roles and tenant ID to workflow attributes
+            attributes.put("roles", roles != null ? roles : Collections.emptyList());
+            attributes.put("tenantId", service.getTenantId());
+            
+            // The workflow client will handle the tenant ID from the attributes
+            return workflowService.transition(
+                    service.getServiceRequestId(),
+                    action,
+                    "Complaint submitted",
+                    attributes
+            );
+        } catch (Exception ex) {
+            log.error("Failed to start workflow for {}: {}", 
+                    service.getServiceRequestId(), ex.getMessage(), ex);
+            return null;
+        }
     }
-}
 
     private void updateCitizenServiceWithWorkflow(CitizenService service, WorkflowTransitionResponse wfResp) {
         service.setWorkflowInstanceId(wfResp.getId());
         service.setProcessId(wfResp.getProcessId());
         try {
-            service.setApplicationStatus(Status.valueOf(wfResp.getCurrentState()));
+            service.setApplicationStatus(wfResp.getCurrentState());
         } catch (IllegalArgumentException e) {
             log.warn("Unknown workflow state '{}', defaulting to INITIATED", wfResp.getCurrentState());
-            service.setApplicationStatus(Status.INITIATED);
         }
     }
 
@@ -275,7 +275,7 @@ public class ServiceServiceImpl implements ServiceService {
             saved.setWorkflowInstanceId(wfResp.getId());
             if (wfResp.getCurrentState() != null) {
                 try {
-                    saved.setApplicationStatus(Status.valueOf(wfResp.getCurrentState()));
+                    saved.setApplicationStatus(wfResp.getCurrentState());
                 } catch (IllegalArgumentException e) {
                     log.warn("Invalid status from workflow: {}", wfResp.getCurrentState());
                 }
@@ -299,7 +299,7 @@ public class ServiceServiceImpl implements ServiceService {
 
         if (applicationStatus != null && !applicationStatus.isBlank()) {
             try {
-                Status statusEnum = Status.valueOf(applicationStatus);
+                String statusEnum = applicationStatus;
                 spec = spec.and((root, query, cb) -> 
                         cb.equal(root.get("applicationStatus"), statusEnum));
             } catch (IllegalArgumentException e) {
@@ -364,8 +364,8 @@ public class ServiceServiceImpl implements ServiceService {
 
     private void validateFileIfPresent(CitizenService citizenService) {
         if (citizenService.getFileStoreId() != null && !citizenService.getFileStoreId().isBlank()) {
-            boolean fileValid = fileStoreUtil.isFileValid(
-                    citizenService.getTenantId(), citizenService.getFileStoreId());
+            boolean fileValid = fileStoreService.isFileValid(
+                    citizenService.getFileStoreId(), citizenService.getTenantId());
             citizenService.setFileValid(fileValid);
             if (!fileValid) {
                 log.warn("FileStoreId {} is invalid or inaccessible for tenant {}", 
@@ -403,7 +403,7 @@ public class ServiceServiceImpl implements ServiceService {
     private void updateFileStore(CitizenService service, String fileStoreId) {
         service.setFileStoreId(fileStoreId);
         try {
-            boolean fileValid = fileStoreUtil.isFileValid(service.getTenantId(), fileStoreId);
+            boolean fileValid = fileStoreService.isFileValid(fileStoreId, service.getTenantId());
             service.setFileValid(fileValid);
             if (!fileValid) {
                 log.warn("File {} invalid for tenant {}", fileStoreId, service.getTenantId());
@@ -433,7 +433,7 @@ public class ServiceServiceImpl implements ServiceService {
 
         Map<String, Object> emailPayload = createEmailPayload(saved, null);
         List<String> attachments = getAttachments(saved);
-        notificationService.sendEmail("service-request-received", 
+        notificationService.sendEmail("my-template-new", 
                 List.of(saved.getEmail()), emailPayload, attachments);
         log.info("Triggered email notification for {}", saved.getServiceRequestId());
     }
@@ -445,7 +445,7 @@ public class ServiceServiceImpl implements ServiceService {
 
         Map<String, Object> emailPayload = createEmailPayload(saved, workflowAction);
         List<String> attachments = getAttachments(saved);
-        notificationService.sendEmail("service-update", 
+        notificationService.sendEmail("my-template-new", 
                 List.of(saved.getEmail()), emailPayload, attachments);
         log.info("Triggered update email for {}", saved.getServiceRequestId());
     }
@@ -455,8 +455,7 @@ public class ServiceServiceImpl implements ServiceService {
         payload.put("applicationNo", saved.getServiceRequestId());
         payload.put("citizenName", saved.getAccountId() != null ? saved.getAccountId() : "");
         payload.put("serviceName", saved.getDescription() != null ? saved.getDescription() : "");
-        payload.put("statusLabel", saved.getApplicationStatus() != null ? 
-                saved.getApplicationStatus().toString() : Status.INITIATED.name());
+        payload.put("statusLabel", saved.getApplicationStatus());
         payload.put("trackUrl", "https://pgr.digit.org/track/" + saved.getServiceRequestId());
         
         if (workflowAction != null) {

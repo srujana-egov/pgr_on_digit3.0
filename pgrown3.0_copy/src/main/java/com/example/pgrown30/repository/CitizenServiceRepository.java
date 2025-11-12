@@ -1,7 +1,6 @@
 package com.example.pgrown30.repository;
 
 import com.example.pgrown30.web.models.CitizenService;
-import com.example.pgrown30.web.models.Status;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -35,12 +34,12 @@ public interface CitizenServiceRepository extends JpaRepository<CitizenService, 
     Page<CitizenService> findByTenantIdAndServiceCode(String tenantId, String serviceCode, Pageable pageable);
     
     // Find by status
-    List<CitizenService> findByTenantIdAndApplicationStatus(String tenantId, Status status);
-    Page<CitizenService> findByTenantIdAndApplicationStatus(String tenantId, Status status, Pageable pageable);
+    List<CitizenService> findByTenantIdAndApplicationStatus(String tenantId, String status);
+    Page<CitizenService> findByTenantIdAndApplicationStatus(String tenantId, String status, Pageable pageable);
     
     // Combined queries
     List<CitizenService> findByTenantIdAndServiceCodeAndApplicationStatus(
-            String tenantId, String serviceCode, Status applicationStatus);
+            String tenantId, String serviceCode, String applicationStatus);
             
     List<CitizenService> findByTenantIdAndAccountId(String tenantId, String accountId);
     
