@@ -65,18 +65,6 @@ Open the renamed project (`PGR3.0`) in your preferred IDE.
 
 ### 7. Update `pom.xml`
 
-Leave only this section:
-
-```xml
-    <groupId>org.egov</groupId>
-    <artifactId>pgr3.0</artifactId>
-    <packaging>jar</packaging>
-    <name>pgr3.0</name>
-    <version>1.0.0</version>
-```
-
-Add the rest to ensure adherance to modernization and standardization:
-
 ```xml
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -89,6 +77,12 @@ Add the rest to ensure adherance to modernization and standardization:
         <version>3.5.6</version>
         <relativePath/>
     </parent>
+
+    <groupId>com.example</groupId>
+    <artifactId>pgrown3.0</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>pgrown3.0</name>
+    <description>Demo project for Spring Boot</description>
 
     <properties>
         <java.version>17</java.version>
