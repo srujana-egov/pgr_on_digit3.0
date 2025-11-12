@@ -11,43 +11,44 @@ This guide specifically references the IDGen, Filestore, Boundary and Workflow s
 1. Add the following properties to the `application.properties` file. (After your Database Configuration properties)
 
 ```properties
+# ===============================
+# Database Configuration
+# ===============================
+spring.datasource.url=jdbc:postgresql://localhost:5432/pgrown
+spring.datasource.username=postgres
+spring.datasource.password=1234
+spring.datasource.driver-class-name=org.postgresql.Driver
+spring.jpa.properties.hibernate.default_schema=public
+
+# ===============================
+# JPA / Hibernate
+# ===============================
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.generate-ddl=true
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+# ===============================
+# Kafka (disabled for now)
+# ===============================
+spring.kafka.enabled=false
+
 server.port = 8083
 
-# IdGen configs
-idgen.host=http://localhost:8100
-idgen.generate.endpoint=idgen/v1/generate
-idgen.idname=service_request
 idgen.templateCode=pgr
-idgen.template.endpoint=/template
 
-# Use the correct endpoint for fileStoreId-based lookup
-filestore.host=http://localhost:8102
-filestore.file.endpoint=/filestore/v1/files/metadata
+pgr.workflow.processCode=PGR6
 
-# Use the correct endpoint for boundary 
-boundary.host=http://localhost:8093
-boundary.search.endpoint=/boundary/v1
-
-# Notification Service (disabled - using digit-client instead)
-# notification.host=http://localhost:8091
-# notification.email.endpoint=/notification/v1/email/send
-# notification.sms.endpoint=/notification/sms/send
-
-#Workflow service
-workflow.host=http://localhost:8085
-workflow.transition.post=/workflow/v1/transition
-workflow.process.base=workflow/v1/process
-pgr.workflow.processId=24198871-ebbc-41ce-857f-dc95ee4c76d9
 
 # ===============================
 # Digit Client Library Configuration
 # ===============================
 # Digit services base URLs for digit-client library
 digit.services.boundary.base-url=https://digit-lts.digit.org
-digit.services.account.base-url=https://digit-lts.digit.org
 digit.services.workflow.base-url=https://digit-lts.digit.org
 digit.services.idgen.base-url=https://digit-lts.digit.org
 digit.services.notification.base-url=https://digit-lts.digit.org
+digit.services.filestore.base-url=https://digit-lts.digit.org
 digit.services.timeout.read=30000
 
 # Header propagation settings for digit-client
@@ -58,4 +59,5 @@ digit.propagate.headers.prefixes=x-ctx-,x-trace-
 logging.level.com.digit.services=DEBUG
 logging.level.com.digit.http=DEBUG
 logging.level.com.digit.config=DEBUG
+
 ```
