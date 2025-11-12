@@ -132,8 +132,6 @@ public class ServiceController {
 
 {% endcode %}
 
-{% hint style="info" %}
 **NOTE:** Want to know more about how we got ServiceController.java from the specs? 
-{% endhint %}
 
 The controller layer is now set up!
