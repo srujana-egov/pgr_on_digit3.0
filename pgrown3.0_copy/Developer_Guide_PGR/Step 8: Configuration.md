@@ -2,6 +2,8 @@
 
 Now that our PGR code is up and running we need to configure the DIGIT services. Luckily that is very easy and can be done in a few steps.
 
+For more information refer here: https://github.com/digitnxt/digit3/tree/develop/code/Tools/DIGIT-CLI
+
 ## **Steps** 
 
 1. Clone the source code: https://github.com/digitnxt/digit3/tree/2b4abbaf839ded28a9d39bed4335a3147b138426/code/Tools/DIGIT-CLI
