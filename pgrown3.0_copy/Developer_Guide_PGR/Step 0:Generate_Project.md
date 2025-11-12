@@ -109,6 +109,13 @@ Add the rest to ensure adherance to modernization and standardization:
     </dependencyManagement>
 
     <dependencies>
+        <!-- Jakarta Persistence API -->
+        <dependency>
+            <groupId>jakarta.persistence</groupId>
+            <artifactId>jakarta.persistence-api</artifactId>
+            <version>3.1.0</version>
+        </dependency>
+
         <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -258,6 +265,7 @@ Add the rest to ensure adherance to modernization and standardization:
         </plugins>
     </build>
 </project>
+
 ```
 ### 8. Add Client Library jar file in your initial created folder.
 Link here: https://github.com/srujana-egov/pgr_on_digit3.0/blob/demo/digit-client-1.0.0.jar
