@@ -130,8 +130,6 @@ public class ServiceController {
 
 ```
 
-{% endcode %}
-
 **NOTE:** Want to know more about how we got ServiceController.java from the specs? 
 
 The controller layer is now set up!
