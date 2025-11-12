@@ -13,26 +13,22 @@ Once PostgreSQL (v10) has been installed and the basic setup is done, we use Fly
 ```properties
 #DATABASE CONFIGURATION
 
+# ===============================
 # Database Configuration
-spring.datasource.url=jdbc:postgresql://localhost:5432/eg_pgr
+# ===============================
+spring.datasource.url=jdbc:postgresql://localhost:5432/pgrown
 spring.datasource.username=postgres
-spring.datasource.password=password
+spring.datasource.password=1234
 spring.datasource.driver-class-name=org.postgresql.Driver
 spring.jpa.properties.hibernate.default_schema=public
 
-# JPA/Hibernate
-spring.jpa.hibernate.ddl-auto=none
+# ===============================
+# JPA / Hibernate
+# ===============================
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.generate-ddl=true
 spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
-
-# Flyway
-spring.flyway.enabled=true
-spring.flyway.url=jdbc:postgresql://localhost:5432/eg_pgr
-spring.flyway.user=postgres
-spring.flyway.password=password
-spring.flyway.schemas=public
-spring.flyway.baseline-on-migrate=true
-spring.flyway.database.connection-error-handling.ignoreUnsupportedDatabase=true
 
 ```
 
