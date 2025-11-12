@@ -1,6 +1,6 @@
-## Testing the PGR created using the following postman calls:
+# **Testing the PGR created using the following postman calls:**
 
-1. Generating Auth Token:
+## **1. Generating Auth Token:**
 curl --location 'https://digit-lts.digit.org/keycloak/realms/PGRDEMO/protocol/openid-connect/token' \
 --header 'Content-Type: application/x-www-form-urlencoded' \
 --data-urlencode 'grant_type=password' \
@@ -9,7 +9,7 @@ curl --location 'https://digit-lts.digit.org/keycloak/realms/PGRDEMO/protocol/op
 --data-urlencode 'username=johndoe' \
 --data-urlencode 'password=egov'
 
-2. Create Service Request
+## **2. Create Service Request**
 curl --location 'http://localhost:8083/citizen-service/create' \
 --header 'Content-Type: application/json' \
 --header 'X-Tenant-ID: PGRDEMO' \
@@ -30,7 +30,7 @@ curl --location 'http://localhost:8083/citizen-service/create' \
   }
 }'
 
-3. Update Service Request
+## **3. Update Service Request**
 curl --location 'http://localhost:8083/citizen-service/update' \
 --header 'Content-Type: application/json' \
 --header 'X-Tenant-ID: PGRDEMO' \
@@ -60,7 +60,7 @@ curl --location 'http://localhost:8083/citizen-service/update' \
             }
         }'
 
-4. Search Service Request
+## **4. Search Service Request**
 curl --location 'http://localhost:8083/citizen-service/search?serviceRequestId=pgr-20251112-0001-GM' \
 --header 'Content-Type: application/json' \
 --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJudTVsbkI5dmhZX2VNMDAtc2Z0NUdkVzdxbTh2RzBuTDItMnh2N3dvZnlvIn0.eyJleHAiOjE3NjI5NTA4MDQsImlhdCI6MTc2Mjk0MzYwNCwianRpIjoiMjU0MmRjOTAtODExNy00ODFlLTk1MGEtMGMxODBkNGZkMDhmIiwiaXNzIjoiaHR0cHM6Ly9kaWdpdC1sdHMuZGlnaXQub3JnL2tleWNsb2FrL3JlYWxtcy9QR1JERU1PIiwiYXVkIjoiYWNjb3VudCIsInN1YiI6ImZjN2ZlZDI1LWFkYTMtNDBjMy05MDM0LTFlNDA2ZmZhYTczMSIsInR5cCI6IkJlYXJlciIsImF6cCI6ImF1dGgtc2VydmVyIiwic2lkIjoiMzMwMmM0YzctOWEwYS00M2M1LTg4ZGItMTQ1NzFmNDM0NzRkIiwiYWNyIjoiMSIsImFsbG93ZWQtb3JpZ2lucyI6WyIvKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiZGVmYXVsdC1yb2xlcy1wZ3JkZW1vIiwib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoicHJvZmlsZSBlbWFpbCIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJqb2huZG9lIiwiZW1haWwiOiJqb2huQGV4YW1wbGUuY29tIn0.aBl_lbg4yH4hCsCMZQpCiRsHgutxEhlrQ65OIsJrmGLuUGCH6kVCCqIt8EQNcUVkZihzQPB6HeG6-lJEKURhDkNmJmWxXWFvdQtGUQcgbdrkTaEleIghNOSNqu_a_MCsfNLus0hX85ptHQn3n09iMqwHqJEW417OAUljFbGQKjtc8QocBYiZdAmYfPtvBp_8gPwXpt4VwO82FfZQrBEqKq45QY8HnrC5I-yJEFj4xUDH6Q57a4a8ge5Jx6D4_uHCE0J85vOVwuvivQxpPZLi8mAIgUhANU4YvOTj575jlqHTIIq61gZOZBQop3OQF-sTzuu8zdXif1Vx8XcKvp68lg' \
