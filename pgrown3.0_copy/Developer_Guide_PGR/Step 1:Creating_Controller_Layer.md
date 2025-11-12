@@ -8,6 +8,7 @@ The controller layer is responsible for handling incoming HTTP requests and retu
 
 <img width="292" height="66" alt="Screenshot 2025-11-13 at 2 07 23 AM" src="https://github.com/user-attachments/assets/570a39f8-f8c4-424c-a816-968da94caef9" />
 
+
 The ServiceController.java reflects the following content -
 
 ```java
