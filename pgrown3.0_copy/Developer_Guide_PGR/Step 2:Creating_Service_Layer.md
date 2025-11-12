@@ -28,25 +28,8 @@ public interface ServiceService {
 
     ServiceResponse updateService(ServiceWrapper wrapper, List<String> roles);
 
-    /**
-     * Search with explicit query params (used by controller GET /search).
-     * Keep this on the interface because the implementation exposes it and controllers call it.
-     */
-    ServiceResponse searchService(
-            String tenantId,
-            String serviceRequestId,
-            String serviceCode,
-            String applicationStatus,
-            String mobileNumber,
-            String locality
-    );
-
-    /**
-     * Convenience / fast-path: search by id + tenant. Implementation may just delegate to searchService.
-     */
     ServiceResponse searchServicesById(String serviceRequestId, String tenantId);
 }
-
    ```
 To implement these functions from ServiceService.java, we have ServiceServiceImpl.java with contents as follows:
 
@@ -65,15 +48,10 @@ import com.example.pgrown30.client.IdGenService;
 import com.example.pgrown30.repository.CitizenServiceRepository;
 import com.example.pgrown30.service.ServiceService;
 import com.example.pgrown30.client.FileStoreService;
-import jakarta.persistence.criteria.JoinType;
-import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.digit.services.workflow.model.Workflow;
 
 import java.time.Instant;
 import java.util.*;
@@ -230,34 +208,6 @@ public class ServiceServiceImpl implements ServiceService {
 
     @Override
     @Transactional(readOnly = true)
-    public ServiceResponse searchService(String tenantId,
-                                       String serviceRequestId,
-                                       String serviceCode,
-                                       String applicationStatus,
-                                       String mobileNumber,
-                                       String locality) {
-        // Fast path: exact id + tenant
-        if (serviceRequestId != null && !serviceRequestId.isBlank()) {
-            return handleExactSearch(tenantId, serviceRequestId);
-        }
-
-        Specification<CitizenService> spec = createSearchSpecification(
-                tenantId, serviceCode, applicationStatus, mobileNumber, locality);
-
-        List<CitizenService> results = citizenServiceRepository.findAll(spec);
-        
-        return ServiceResponse.builder()
-            .services(results)
-            .serviceWrappers(results.stream()
-                .map(service -> ServiceWrapper.builder()
-                    .service(service)
-                    .build())
-                .collect(Collectors.toList()))
-            .build();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public ServiceResponse searchServicesById(String serviceRequestId, String tenantId) {
         if (serviceRequestId == null || serviceRequestId.isBlank()) {
             log.warn("searchServicesById called with null/empty serviceRequestId");
@@ -338,60 +288,6 @@ public class ServiceServiceImpl implements ServiceService {
         return saved;
     }
 
-    private Specification<CitizenService> createSearchSpecification(
-            String tenantId, String serviceCode, String applicationStatus, 
-            String mobileNumber, String locality) {
-        
-        Specification<CitizenService> spec = Specification.where(
-                (root, query, cb) -> cb.equal(root.get("tenantId"), tenantId));
-
-        if (serviceCode != null && !serviceCode.isBlank()) {
-            spec = spec.and((root, query, cb) -> 
-                    cb.equal(root.get("serviceCode"), serviceCode));
-        }
-
-        if (applicationStatus != null && !applicationStatus.isBlank()) {
-            try {
-                String statusEnum = applicationStatus;
-                spec = spec.and((root, query, cb) -> 
-                        cb.equal(root.get("applicationStatus"), statusEnum));
-            } catch (IllegalArgumentException e) {
-                log.warn("searchService: unknown applicationStatus '{}'", applicationStatus);
-                throw new RuntimeException("Invalid application status: " + applicationStatus);
-            }
-        }
-
-        if (mobileNumber != null && !mobileNumber.isBlank()) {
-            spec = spec.and((root, query, cb) -> 
-                    cb.equal(root.get("mobile"), mobileNumber));
-        }
-
-        if (locality != null && !locality.isBlank()) {
-            spec = spec.and(createLocalitySpecification(locality));
-        }
-
-        return spec;
-    }
-
-    private Specification<CitizenService> createLocalitySpecification(String locality) {
-        return (root, query, cb) -> {
-            root.join("addresses", JoinType.LEFT);
-            query.distinct(true);
-
-            String pattern = "%" + locality.trim().toLowerCase() + "%";
-            var addrJoin = root.join("addresses", JoinType.LEFT);
-
-            Predicate cityLike = cb.like(cb.lower(addrJoin.get("city")), pattern);
-            Predicate addressLike = cb.like(cb.lower(addrJoin.get("address")), pattern);
-            Predicate pincodeEq = cb.equal(addrJoin.get("pincode"), locality.trim());
-
-            return cb.or(cityLike, addressLike, pincodeEq);
-        };
-    }
-
-    private ServiceResponse handleExactSearch(String tenantId, String serviceRequestId) {
-        Optional<CitizenService> maybe = citizenServiceRepository
-                .findByServiceRequestIdAndTenantId(serviceRequestId, tenantId);
         List<CitizenService> dtos = maybe.map(List::of).orElseGet(List::of);
         
         return ServiceResponse.builder()
