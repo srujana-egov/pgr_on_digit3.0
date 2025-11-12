@@ -10,7 +10,7 @@ The controller layer is responsible for handling incoming HTTP requests and retu
 
 <img width="292" height="66" alt="Screenshot 2025-11-13 at 2 07 23 AM" src="https://github.com/user-attachments/assets/570a39f8-f8c4-424c-a816-968da94caef9" />
 
-The controller class reflects the following content -
+The ServiceController.java reflects the following content -
 
 {% code lineNumbers="true" %}
 
@@ -128,13 +128,12 @@ public class ServiceController {
     }
 }
 
-
 ```
 
 {% endcode %}
 
 {% hint style="info" %}
-**NOTE:** At this point, your IDE must be showing a lot of errors, but do not worry, we will add all dependent layers as we progress through this guide, and the errors will go away.
+**NOTE:** Want to know more about how we got ServiceController.java from the specs? 
 {% endhint %}
 
-The web layer is now set up.
+The controller layer is now set up!
