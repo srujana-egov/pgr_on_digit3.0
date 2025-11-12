@@ -1,13 +1,6 @@
 # Create and Configure Database
 
-## **Overview**
-
-Once PostgreSQL (v10) has been installed and the basic setup is done, we use Flyway to create the tables.
-
 ## **Steps**
-
-### **Enable Flyway Migration**
-
 1. Configure the below properties in the application.properties file to enable flyway migration:
 
 ```properties
