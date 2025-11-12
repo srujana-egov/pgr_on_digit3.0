@@ -38,17 +38,8 @@ public class CitizenAddress {
     @Column(name = "longitude", precision = 11, scale = 8)
     private BigDecimal longitude;
 
-    @Column(name = "created_by")
-    private String createdBy;
-
-    @Column(name = "last_modified_by")
-    private String lastModifiedBy;
-
-    @Column(name = "created_time")
-    private Long createdTime;
-
-    @Column(name = "last_modified_time")
-    private Long lastModifiedTime;
+    @Column(name = "audit_details")
+    private AuditDetails auditDetails;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_request_id", insertable = false, updatable = false)

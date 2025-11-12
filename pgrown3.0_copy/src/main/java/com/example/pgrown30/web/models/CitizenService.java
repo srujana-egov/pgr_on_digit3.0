@@ -1,29 +1,24 @@
 package com.example.pgrown30.web.models;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
 @Entity
-@Table(
-    name = "citizen_service",
-    indexes = {
-        @Index(columnList = "tenant_id"),
-        @Index(columnList = "service_code"),
-        @Index(columnList = "application_status"),
-        @Index(columnList = "account_id"),
-        @Index(columnList = "boundary_code")
-    }
-)
+@Table(name = "citizen_service", indexes = {
+    @Index(columnList = "tenant_id"),
+    @Index(columnList = "service_code"),
+    @Index(columnList = "application_status"),
+    @Index(columnList = "account_id"),
+    @Index(columnList = "boundary_code")
+})
 @Getter
 @Setter
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@Builder
+@Slf4j
 public class CitizenService {
 
     @Id
@@ -64,11 +59,8 @@ public class CitizenService {
     @Column(name = "boundary_valid")
     private Boolean boundaryValid;
 
-    @Column(name = "created_time")
-    private Long createdTime;
-
-    @Column(name = "last_modified_time")
-    private Long lastModifiedTime;
+    @Embedded
+    private AuditDetails auditDetails;
 
     @Column(name = "email")
     private String email;
@@ -76,27 +68,31 @@ public class CitizenService {
     @Column(name = "mobile")
     private String mobile;
 
-    @Column(name = "workflow_instance_id")
-    private String workflowInstanceId;
-
     @Column(name = "process_id")
     private String processId;
 
-    // Relationships
-    @OneToMany(mappedBy = "citizenService", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonManagedReference
-    private List<CitizenAddress> addresses;
+    @Column(name = "workflow_instance_id")
+private String workflowInstanceId;
 
-    @OneToMany(mappedBy = "citizenService", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "citizenService", cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = true)
     @JsonManagedReference
-    private List<CitizenDocument> documents;
+    private CitizenAddress address;
 
-    @OneToMany(mappedBy = "citizenService", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonManagedReference
-    private List<CitizenWorkflow> workflows;
+    @PrePersist
+    protected void onCreate() {
+        if (this.auditDetails == null) {
+            this.auditDetails = AuditDetails.builder().build();
+        }
+        long now = System.currentTimeMillis();
+        this.auditDetails.setCreatedTime(now);
+        this.auditDetails.setLastModifiedTime(now);
+    }
 
-    @OneToMany(mappedBy = "citizenService", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonManagedReference
-    private List<CitizenAudit> audits;
-
+    @PreUpdate
+    protected void onUpdate() {
+        if (this.auditDetails == null) {
+            this.auditDetails = AuditDetails.builder().build();
+        }
+        this.auditDetails.setLastModifiedTime(System.currentTimeMillis());
+    }
 }

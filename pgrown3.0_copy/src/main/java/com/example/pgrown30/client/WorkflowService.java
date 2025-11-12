@@ -1,107 +1,92 @@
 package com.example.pgrown30.client;
 
 import com.digit.services.workflow.WorkflowClient;
+import com.digit.services.workflow.model.WorkflowProcessResponse;
 import com.digit.services.workflow.model.WorkflowTransitionRequest;
 import com.digit.services.workflow.model.WorkflowTransitionResponse;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @Slf4j
-@Component
+@Service
+@RequiredArgsConstructor
 public class WorkflowService {
-
     private final WorkflowClient workflowClient;
-    private final RestTemplate restTemplate;
+    
+    @Value("${pgr.workflow.processCode}")
+    private String processCode;
+    
+    private String cachedProcessId;
 
-    public WorkflowService(WorkflowClient workflowClient, 
-                         @Qualifier("pgrRestTemplate") RestTemplate restTemplate) {
-        this.workflowClient = workflowClient;
-        this.restTemplate = restTemplate;
+    @PostConstruct
+    public void init() {
+        getProcessId();
     }
 
-    @Value("${workflow.host}")
-    private String workflowHost;
-
-    @Value("${pgr.workflow.processId}")
-    private String processId;
-
-    private String base() {
-        return workflowHost + "/workflow/v1";
+    private String getProcessId() {
+        if (cachedProcessId == null) {
+            cachedProcessId = processCode;
+            log.info("Using process ID: {}", cachedProcessId);
+        }
+        return cachedProcessId;
     }
 
-    private HttpHeaders defaultHeaders(String tenantId) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("X-Tenant-ID", tenantId);
-        return headers;
-    }
-
-    // TRANSITION APIS - Using digit-client
-    public WorkflowTransitionResponse transition(String entityId, String action, String comment, Map<String, List<String>> attributes) {
-        WorkflowTransitionRequest request = WorkflowTransitionRequest.builder()
-                .processId(processId)
-                .entityId(entityId)
-                .action(action)
-                .comment(comment)
-                .attributes(attributes)
-                .build();
-
-        // Use digit-client library for workflow transition
-        // Headers are automatically propagated via HeaderPropagationInterceptor
-        WorkflowTransitionResponse response = workflowClient.executeTransition(request);
-        
-        log.info("Workflow transition completed successfully for entityId={} processId={} action={}", 
-                entityId, processId, action);
-        
-        return response;
-    }
-
-    public WorkflowTransitionResponse updateProcessInstance(String entityId, String processId, String action, List<String> roles) {
-        Map<String, List<String>> attributes = new HashMap<>();
-        attributes.put("roles", roles);
-        WorkflowTransitionRequest request = WorkflowTransitionRequest.builder()
-                .processId(processId)
-                .entityId(entityId)
-                .action(action)
-                .attributes(attributes)
-                .build();
-
-        // Use digit-client library for workflow transition
-        // Headers are automatically propagated via HeaderPropagationInterceptor
-        WorkflowTransitionResponse response = workflowClient.executeTransition(request);
-        
-        return response;
-    }
-
-    public Map<String, Object> getProcessById(String tenantId, String processId) {
-        String url = base() + "/process/" + processId;
-        try {
-            ResponseEntity<Map> resp = restTemplate.exchange(
-                    url, HttpMethod.GET, new HttpEntity<>(defaultHeaders(tenantId)), Map.class);
-            return resp.getBody();
-        } catch (RestClientException e) {
-            log.error("getProcessById failed: {}", e.getMessage(), e);
-            throw e;
+    public WorkflowTransitionResponse transition(
+    String entityId, 
+    String action, 
+    String comment, 
+    Map<String, Object> attributes
+) {
+    String processId = getProcessId();
+    
+    // Create a new Map with the correct type parameters
+    Map<String, List<String>> attributesCopy = new HashMap<>();
+    
+    // Copy all attributes, ensuring values are List<String>
+    if (attributes != null) {
+        for (Map.Entry<String, Object> entry : attributes.entrySet()) {
+            if (entry.getValue() instanceof List) {
+                // Safe to cast since we know it's a List
+                @SuppressWarnings("unchecked")
+                List<String> valueList = (List<String>) entry.getValue();
+                attributesCopy.put(entry.getKey(), valueList);
+            } else {
+                // Convert single values to a singleton list
+                attributesCopy.put(entry.getKey(), 
+                    Collections.singletonList(String.valueOf(entry.getValue())));
+            }
         }
     }
+    
+    WorkflowTransitionRequest request = WorkflowTransitionRequest.builder()
+        .processId(processId)
+        .entityId(entityId)
+        .action(action)
+        .comment(comment)
+        .attributes(attributesCopy)
+        .build();
 
-    public boolean processExists(String tenantId, String processId) {
+    log.debug("Initiating workflow transition: {}", request);
+    WorkflowTransitionResponse response = workflowClient.executeTransition(request);
+    log.info("Workflow transition completed for entityId={} processId={} action={}", 
+            entityId, processId, action);
+    return response;
+}
+
+    public WorkflowProcessResponse getProcessById(String processInstanceId) {
         try {
-            Map<String, Object> process = getProcessById(tenantId, processId);
-            return process != null && !process.isEmpty();
+            return workflowClient.getProcessById(processInstanceId);
         } catch (Exception e) {
-            log.warn("Process {} does not exist for tenant {}: {}", processId, tenantId, e.getMessage());
-            return false;
+            log.error("Failed to get process by ID: {}", processInstanceId, e);
+            throw new RuntimeException("Failed to get workflow process", e);
         }
     }
 }
