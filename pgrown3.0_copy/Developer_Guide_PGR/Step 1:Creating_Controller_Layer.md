@@ -12,8 +12,6 @@ The controller layer is responsible for handling incoming HTTP requests and retu
 
 The ServiceController.java reflects the following content -
 
-{% code lineNumbers="true" %}
-
 ```java
 package com.example.pgrown30.web.controllers;
 
