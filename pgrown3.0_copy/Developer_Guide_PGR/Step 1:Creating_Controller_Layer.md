@@ -1,7 +1,5 @@
 # Step 1: Creating the Controller Layer
 
-## **Overview**
-
 The controller layer is responsible for handling incoming HTTP requests and returning appropriate responses.
 
 ## **Steps**
