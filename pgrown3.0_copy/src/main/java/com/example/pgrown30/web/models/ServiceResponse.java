@@ -1,29 +1,25 @@
-package com.example.pgrown30.web.models;
+// ServiceResponse.java
+package com.example.pgr.client.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.Valid;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import lombok.*;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ServiceResponse {
-
-    @JsonProperty("services")
-    @Valid
     private List<CitizenService> services;
+    private List<WorkflowResponse> workflowResponses;
 
-    @JsonProperty("responseInfo")
-    @Valid
-    private ResponseInfo responseInfo;
-
-    @JsonProperty("serviceWrappers")
-    @Valid
-    private List<ServiceWrapper> serviceWrappers;
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class WorkflowResponse {
+        private String status;
+        private String message;
+    }
 }
