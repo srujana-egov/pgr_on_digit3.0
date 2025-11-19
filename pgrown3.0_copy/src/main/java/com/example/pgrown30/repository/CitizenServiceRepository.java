@@ -17,39 +17,7 @@ import java.util.Optional;
 
 @Repository
 public interface CitizenServiceRepository extends JpaRepository<CitizenService, String>, JpaSpecificationExecutor<CitizenService> {
+    
     Optional<CitizenService> findByServiceRequestIdAndTenantId(String serviceRequestId, String tenantId);
-    
-    @Query("SELECT cs FROM CitizenService cs WHERE cs.tenantId = :tenantId AND cs.auditDetails.createdTime BETWEEN :startDate AND :endDate")
-    List<CitizenService> findByTenantIdAndCreatedTimeBetween(
-        @Param("tenantId") String tenantId, 
-        @Param("startDate") Long startDate, 
-        @Param("endDate") Long endDate
-    );
-    // Find by tenant
-    List<CitizenService> findByTenantId(String tenantId);
-    Page<CitizenService> findByTenantId(String tenantId, Pageable pageable);
-    
-    // Find by service code
-    List<CitizenService> findByTenantIdAndServiceCode(String tenantId, String serviceCode);
-    Page<CitizenService> findByTenantIdAndServiceCode(String tenantId, String serviceCode, Pageable pageable);
-    
-    // Find by status
-    List<CitizenService> findByTenantIdAndApplicationStatus(String tenantId, String status);
-    Page<CitizenService> findByTenantIdAndApplicationStatus(String tenantId, String status, Pageable pageable);
-    
-    // Combined queries
-    List<CitizenService> findByTenantIdAndServiceCodeAndApplicationStatus(
-            String tenantId, String serviceCode, String applicationStatus);
-            
-    List<CitizenService> findByTenantIdAndAccountId(String tenantId, String accountId);
-    
-    List<CitizenService> findByTenantIdAndSource(String tenantId, String source);
-    
-    List<CitizenService> findByTenantIdAndBoundaryCode(String tenantId, String boundaryCode);
-    
-    // Search by file store
-    List<CitizenService> findByTenantIdAndFileStoreId(String tenantId, String fileStoreId);
-    
-    List<CitizenService> findByTenantIdAndFileValid(String tenantId, Boolean fileValid);
     
 }
