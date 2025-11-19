@@ -7,8 +7,9 @@ This page provides detailed steps for generating projects using the given API sp
 ## Steps
 
 ### 0. Clone this repo.
+git clone https://github.com/digitnxt/digit3.git
 
-### 1. Prepare Swagger contracts
+### 1. Navigate to the folder 'generated
 
 Prepare Swagger contracts that define all the APIs that the service will expose for external consumption.
 
