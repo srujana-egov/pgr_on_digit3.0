@@ -1,4 +1,4 @@
-# Generate Project Using API Specs - In one command! (Almost)
+# Generate Project Using API Specs - In 1 command! (Almost)
 
 ## Overview
 
@@ -6,9 +6,7 @@ This page provides detailed steps for generating projects using the given API sp
 
 ## Steps
 
-### 0. Create a folder
-
-Create a new folder in your desired location.
+### 0. Clone this repo.
 
 ### 1. Prepare Swagger contracts
 
