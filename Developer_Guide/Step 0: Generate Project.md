@@ -44,9 +44,9 @@ idgenTemplateCode=pgr,\
 WorkflowProcessCode=PGR6 \
   --global-property=apis,models,supportingFiles
 ````
-Replace these flags as per the project you are genereating:
+Replace these flags as per the project you are generating:
 
-Geberal project configuration:
+##General project configuration:
 packageName
 servicePackage
 groupId
@@ -55,20 +55,20 @@ artifactVersion\
 name
 description
 
-Database configuration:
+##Database configuration:
 dbName
 dbSchema
 dbUser
 dbPassword
 serverPort
 
-IDGen configuaration:
+##IDGen configuaration:
 idgenTemplateCode
 
-Workflow Configuration:
+##Workflow Configuration:
 WorkflowProcessCode
 
-Leave these as true:
+##Leave these as true:
 delegatePattern=true,\
 useSpringBoot3=true,\
 
