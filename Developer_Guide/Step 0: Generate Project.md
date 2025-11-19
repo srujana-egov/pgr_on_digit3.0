@@ -9,254 +9,124 @@ This page provides detailed steps for generating projects using the given API sp
 ### 0. Clone this repo.
 git clone https://github.com/digitnxt/digit3.git
 
-### 1. Navigate to the folder 'generated
+### 1. Navigate to the folder 'generate-project'
 
-Prepare Swagger contracts that define all the APIs that the service will expose for external consumption.
+cd digit3/Developer_Guide
+ls
 
-Use this contract for this PGR tutorial:  
-https://github.com/srujana-egov/pgr_on_digit3.0/blob/developer-guide/pgr3.0.yaml
+Copy this folder locally.
 
-### 2. Download the codegen tool
-
-Download the codegen tool and move it to your created folder:  
-https://github.com/egovernments/Digit-Core/blob/codegen-openapi-3.0-Core-2.9-lts/accelerators/codegen/codegen-2.0-SNAPSHOT-jar-with-dependencies.jar
-
-### 3. Navigate to the folder
-
-In your terminal, go to the folder where you’ve placed both the codegen JAR and your Swagger contract.
-
-### 4. Generate the API skeleton
-
-Use the generic command below to create an API skeleton for any Swagger contract:
+### 2. Use this command to generate most of your project stub.
 
 ```bash
-java -jar codegen-2.0-SNAPSHOT-jar-with-dependencies.jar \
-  -l -t \
-  -u /path/to/your/swagger-contract.yaml \
-  -a {project_name} \
-  -b digit.{project_name}
+openapi-generator generate \
+  -g spring \
+  -i pgr.yaml \
+  -o generated-pgr \
+  -t ./final-custom-templates \
+  --api-package com.example.pgrown30.web.controllers \
+  --model-package com.example.pgrown30.web.models \
+  --invoker-package com.example.pgrown30.web \
+  --additional-properties=\
+packageName=com.example.pgrown30,\
+servicePackage=com.example.pgrown30.web.service,\
+delegatePattern=true,\
+useSpringBoot3=true,\
+groupId=com.example,\
+artifactId=pgrown30,\
+artifactVersion=0.0.1-SNAPSHOT,\
+name=pgrown30,\
+description="PGR Service generated from YAML",\
+dbName=pgrown,\
+dbSchema=public,\
+dbUser=postgres,\
+dbPassword=1234,\
+serverPort=8083,\
+idgenTemplateCode=pgr,\
+WorkflowProcessCode=PGR6 \
+  --global-property=apis,models,supportingFiles
+````
+Replace these flags as per the project you are genereating:
+
+Geberal project configuration:
+packageName
+servicePackage
+groupId=com.example,\
+artifactId=pgrown30,\
+artifactVersion=0.0.1-SNAPSHOT,\
+name=pgrown30,\
+description="PGR Service generated from YAML",\
+
+Database configuration:
+dbName=pgrown,\
+dbSchema=public,\
+dbUser=postgres,\
+dbPassword=1234,\
+serverPort=8083,\
+
+IDGen configuaration:
+idgenTemplateCode=pgr,\
+
+Workflow Configuration:
+WorkflowProcessCode=PGR6 \
+
+Leave these as true:
+delegatePattern=true,\
+useSpringBoot3=true,\
+
+Your pom.xml, application.properties, controller file and service interface are all generated. 
+
+### 3. Generating repository layer
+
+Use the command:
+
+```python
+ python3 scripts/generate_repositories.py pgr.yaml generated-pgr/src/main/java
+```
+
+This ...
+
+Awesome! Repository layer is generated. 
+
+### 4. Cleanup models
+
+Use the command:
+
+```python
+python3 scripts/cleanup_models.py /Users/srujana/Desktop/gen-pgr/generated-pgr/src/main/java/com/example/pgrown30/web/models
+````
+Now all the models have just the information we need. 
+
+### 5. Cleanup Application.java
+
+Use the command:
+
+```bash
+chmod +x scripts/fix-application.sh
+./scripts/fix-application.sh
+
 ````
 
-* `-a` sets the artifact name.
-* `-b` tells the generator which base templates to use under `src/main/resources/templates/`.
-  That means: "Generate this service using the DIGIT framework conventions."
+### 6. Generate config files.
 
-**Example:**
+Use the commands:
 
 ```bash
-java -jar codegen-2.0-SNAPSHOT-jar-with-dependencies.jar \
-  -l -t \
-  -u /Users/srujana/Desktop/pgr3.0.yaml \
-  -a pgr3_0 \
-  -b digit.pgr3_0
-```
+python3 scripts/generate_digit_client_config.py generated-pgr/src/main/java
+python3 scripts/generate_security_config.py generated-pgr/src/main/java  
 
-### 5. Rename the output folder
+````
+### 7. Import in IDE.
 
-Rename the generated `output` folder to `PGR3.0`.
+Now you have all the generated files you need! Open the generated-pgr folder in the IDE of your choice. Make sure it is using this folder structure:
+<img width="508" height="535" alt="Screenshot 2025-11-19 at 1 29 48 PM" src="https://github.com/user-attachments/assets/90b6f6b3-2107-4141-9710-3a0b09d6b3dc" />
 
-### 6. Import into your IDE
+Rename the ApiDelegate file -> Service.java. 
 
-Open the renamed project (`PGR3.0`) in your preferred IDE.
+Delete all the unnecessarry files generated. 
 
-### 7. Update `pom.xml`
+Note: You may need to move some files around to get this. 
 
-```xml
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.6</version>
-        <relativePath/>
-    </parent>
-
-    <groupId>com.example</groupId>
-    <artifactId>pgrown3.0</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>pgrown3.0</name>
-    <description>Demo project for Spring Boot</description>
-
-    <properties>
-        <java.version>17</java.version>
-        <lombok.version>1.18.32</lombok.version>
-    </properties>
-
-    <!-- ✅ Testcontainers BOM for version alignment -->
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>testcontainers-bom</artifactId>
-                <version>1.20.1</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
-    <dependencies>
-        <!-- Jakarta Persistence API -->
-        <dependency>
-            <groupId>jakarta.persistence</groupId>
-            <artifactId>jakarta.persistence-api</artifactId>
-            <version>3.1.0</version>
-        </dependency>
-
-        <!-- Spring Boot Starters -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-security</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-
-        <!-- Lombok -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>${lombok.version}</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- Database -->
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>42.7.3</version>
-        </dependency>
-
-        <!-- Flyway (PostgreSQL) -->
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-database-postgresql</artifactId>
-            <version>11.7.2</version>
-        </dependency>
-
-        <!-- Testing -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Testcontainers -->
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>kafka</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- In-memory DB for tests -->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Digit Client Library -->
-        <dependency>
-            <groupId>com.digit</groupId>
-            <artifactId>digit-client</artifactId>
-            <version>1.0.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/../digit-client-1.0.0.jar</systemPath>
-        </dependency>
-        <!-- Security + JWT resource server (validates tokens, fetches JWKs, etc.) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
-        </dependency>
-        <!-- Optional: if not pulled transitively -->
-        <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-oauth2-jose</artifactId>
-        </dependency>
-        
-        <!-- Minimal OpenTelemetry API (no-op implementation) -->
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-api</artifactId>
-            <version>1.32.0</version>
-        </dependency>
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-context</artifactId>
-            <version>1.32.0</version>
-        </dependency>
-    </dependencies>
-
-    <build>
-        <plugins>
-            <!-- Flyway Maven Plugin -->
-            <plugin>
-                <groupId>org.flywaydb</groupId>
-                <artifactId>flyway-maven-plugin</artifactId>
-                <version>11.7.2</version>
-                <configuration>
-                    <url>jdbc:postgresql://localhost:5432/pgrown</url>
-                    <user>postgres</user>
-                    <password>password</password>
-                    <schemas>
-                        <schema>public</schema>
-                    </schemas>
-                </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.postgresql</groupId>
-                        <artifactId>postgresql</artifactId>
-                        <version>42.7.3</version>
-                    </dependency>
-                </dependencies>
-            </plugin>
-
-            <!-- Compiler Plugin -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                            <version>${lombok.version}</version>
-                        </path>
-                    </annotationProcessorPaths>
-                </configuration>
-            </plugin>
-
-            <!-- Spring Boot Plugin -->
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
-</project>
-
-```
 ### 8. Add Client Library jar file in your initial created folder.
 Link here: https://github.com/srujana-egov/pgr_on_digit3.0/blob/demo/digit-client-1.0.0.jar
 
