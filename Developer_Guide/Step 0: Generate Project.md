@@ -1,7 +1,5 @@
 # Generate Project Using API Specs - In 1 command! (Almost)
 
-## Overview
-
 This page provides detailed steps for generating projects using the given API specifications via OpenAPI generator. 
 
 ## Steps
@@ -14,7 +12,7 @@ git clone https://github.com/digitnxt/digit3.git
 cd digit3/Developer_Guide
 ls
 
-Copy this folder locally.
+Copy this folder locally as 'generate-project'.
 
 ### 2. Use this command to generate most of your project stub.
 
@@ -51,30 +49,31 @@ Replace these flags as per the project you are genereating:
 Geberal project configuration:
 packageName
 servicePackage
-groupId=com.example,\
-artifactId=pgrown30,\
-artifactVersion=0.0.1-SNAPSHOT,\
-name=pgrown30,\
-description="PGR Service generated from YAML",\
+groupId
+artifactId
+artifactVersion\
+name
+description
 
 Database configuration:
-dbName=pgrown,\
-dbSchema=public,\
-dbUser=postgres,\
-dbPassword=1234,\
-serverPort=8083,\
+dbName
+dbSchema
+dbUser
+dbPassword
+serverPort
 
 IDGen configuaration:
-idgenTemplateCode=pgr,\
+idgenTemplateCode
 
 Workflow Configuration:
-WorkflowProcessCode=PGR6 \
+WorkflowProcessCode
 
 Leave these as true:
 delegatePattern=true,\
 useSpringBoot3=true,\
 
 Your pom.xml, application.properties, controller file and service interface are all generated. 
+Note: The service interface will be generated under the controllers folder with 'delegate' in the name. 
 
 ### 3. Generating repository layer
 
@@ -84,7 +83,18 @@ Use the command:
  python3 scripts/generate_repositories.py pgr.yaml generated-pgr/src/main/java
 ```
 
-This ...
+This does the following:
+- Reads the OpenAPI YAML.
+- Detects all schemas under components/schemas.
+- Determines which schemas are DOMAIN ENTITIES based on:
+    • having string fields OR uuid OR identifiers
+    • being referenced by ServiceWrapper or ServiceResponse
+- Detects primary ID field automatically:
+    • id, serviceRequestId, tenantId, <name>Id, etc.
+    • OR x-id-field in YAML override
+- Auto-detects package structure from generated Java models
+- Writes repository files to:
+      <base-package>/repository/<SchemaName>Repository.java
 
 Awesome! Repository layer is generated. 
 
@@ -95,6 +105,19 @@ Use the command:
 ```python
 python3 scripts/cleanup_models.py /Users/srujana/Desktop/gen-pgr/generated-pgr/src/main/java/com/example/pgrown30/web/models
 ````
+
+This does the following:
+- For each .java file in the given directory:
+  - Reads package name.
+  - Finds "private" field declarations and their types.
+  - Finds @JsonProperty("...") usage on getters to preserve JSON property names when present.
+  - Backs up original file to filename.java.bak
+  - Overwrites the file with a compact Lombok-style class:
+      - imports: JsonProperty + Lombok annotations
+      - @Data @NoArgsConstructor @AllArgsConstructor @Builder
+      - field declarations annotated with @JsonProperty("jsonName")
+- Prints a summary of files processed.
+  
 Now all the models have just the information we need. 
 
 ### 5. Cleanup Application.java
