@@ -142,6 +142,8 @@ python3 scripts/generate_security_config.py generated-pgr/src/main/java
 ### 7. Import in IDE.
 
 Now you have all the generated files you need! Open the generated-pgr folder in the IDE of your choice. Make sure it is using this folder structure:
+
+
 <img width="508" height="535" alt="Screenshot 2025-11-19 at 1 29 48 PM" src="https://github.com/user-attachments/assets/90b6f6b3-2107-4141-9710-3a0b09d6b3dc" />
 
 
