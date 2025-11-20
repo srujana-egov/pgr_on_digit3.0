@@ -1,5 +1,7 @@
 [to be deleted if the controller mustache produces exact same output]
 
+please verify that the method names for create, search and update match in this and service interface files. 
+
 replace the generated controller with the below
 
 ```java
