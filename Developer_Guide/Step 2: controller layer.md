@@ -7,7 +7,7 @@ replace the generated controller with the below
 ```java
 package com.example.pgrown30.web.controllers;
 
-import com.example.pgrown30.service.ServiceService;
+import com.example.pgrown30.web.service.ServiceService;
 import com.example.pgrown30.web.models.ServiceResponse;
 import com.example.pgrown30.web.models.ServiceWrapper;
 import lombok.RequiredArgsConstructor;
@@ -58,12 +58,13 @@ public class ServiceController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<ServiceResponse> citizenServiceCreate(@RequestBody ServiceWrapper wrapper,
-                                                  @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<ServiceResponse> citizenServiceCreate(
+            @RequestBody ServiceWrapper wrapper,
+            @AuthenticationPrincipal Jwt jwt) {
 
         if (wrapper == null || wrapper.getService() == null) {
             log.warn("create: missing request body");
-            return ResponseEntity.badRequest().body(new ServiceResponse(List.of(), List.of()));
+            return ResponseEntity.badRequest().body(new ServiceResponse());
         }
 
         List<String> roles = getRealmRoles(jwt);
@@ -78,12 +79,13 @@ public class ServiceController {
     }
 
     @PostMapping("/update")
-    public ResponseEntity<ServiceResponse> citizenServiceUpdate(@RequestBody ServiceWrapper wrapper,
-                                                  @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<ServiceResponse> citizenServiceUpdate(
+            @RequestBody ServiceWrapper wrapper,
+            @AuthenticationPrincipal Jwt jwt) {
 
         if (wrapper == null || wrapper.getService() == null) {
             log.warn("update: missing request body");
-            return ResponseEntity.badRequest().body(new ServiceResponse(List.of(), List.of()));
+            return ResponseEntity.badRequest().body(new ServiceResponse());
         }
 
         List<String> roles = getRealmRoles(jwt);
@@ -105,7 +107,7 @@ public class ServiceController {
 
         if (serviceRequestId == null || serviceRequestId.isBlank()) {
             log.warn("search: missing serviceRequestId");
-            return ResponseEntity.badRequest().body(new ServiceResponse(List.of(), List.of()));
+            return ResponseEntity.badRequest().body(new ServiceResponse());
         }
 
         List<String> roles = getRealmRoles(jwt);
