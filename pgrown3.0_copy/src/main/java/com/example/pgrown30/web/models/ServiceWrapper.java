@@ -13,7 +13,7 @@ import lombok.*;
 public class ServiceWrapper {
 
     @JsonProperty("CitizenService")
-    @NotNull
+    @NotNull(message = "CitizenService cannot be null")
     @Valid
     private CitizenService service;
 
