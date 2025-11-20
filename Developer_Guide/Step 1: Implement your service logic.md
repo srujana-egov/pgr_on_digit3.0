@@ -54,7 +54,7 @@ public class ServiceServiceImpl implements ServiceService {
  //CREATE SERVICE
  @Override
  @Transactional
- public ServiceResponse createService(ServiceWrapper wrapper, List<String> roles) {
+ public ServiceResponse citizenServiceCreate(ServiceWrapper wrapper, List<String> roles) {
      if (wrapper == null || wrapper.getService() == null) {
          log.error("Invalid request: wrapper or service is null");
          return ServiceResponse.builder()
@@ -147,7 +147,7 @@ public class ServiceServiceImpl implements ServiceService {
  //UPDATE SERVICE
  @Override
  @Transactional
- public ServiceResponse updateService(ServiceWrapper wrapper, List<String> roles) {
+ public ServiceResponse citizenServiceUpdate(ServiceWrapper wrapper, List<String> roles) {
      if (wrapper == null || wrapper.getService() == null) {
          log.error("Invalid update request: wrapper or service is null");
          return ServiceResponse.builder()
@@ -213,9 +213,9 @@ public class ServiceServiceImpl implements ServiceService {
  //SEARCH SERVICE BY ID
  @Override
  @Transactional(readOnly = true)
- public ServiceResponse searchServicesById(String serviceRequestId, String tenantId) {
+ public ServiceResponse citizenServiceSearch(String serviceRequestId, String tenantId) {
      if (serviceRequestId == null || serviceRequestId.isBlank()) {
-         log.warn("searchServicesById called with null/empty serviceRequestId");
+         log.warn("citizenServiceSearch called with null/empty serviceRequestId");
          return ServiceResponse.builder()
              .services(Collections.emptyList())
              .serviceWrappers(Collections.singletonList(
