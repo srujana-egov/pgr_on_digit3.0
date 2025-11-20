@@ -49,14 +49,11 @@ public class CitizenService {
     @Column(name = "file_store_id")
     private String fileStoreId;
 
-    @Column(name = "file_valid")
-    private Boolean fileValid;
-
     @Column(name = "boundary_code")
     private String boundaryCode;
 
-    @Column(name = "boundary_valid")
-    private Boolean boundaryValid;
+    @Column(name = "individual_id")
+    private String individualId;
 
     @Embedded
     private AuditDetails auditDetails;
